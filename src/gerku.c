@@ -320,12 +320,26 @@ int eval(vec_t stack, char *ln)
   return ret;
 }
 
+#ifdef USE_LINENOISE
+
+#define get_line(l) (l = linenoise("gerku> "))
+char *buf=NULL;
+#define clear_line(l) (l? free(l) : 0, l = NULL)
+
+#else 
 
 #define MAXLINE 256
+char buf[MAXLINE];
+#define get_line(l) (fprintf(stdout,"gerku> "),fgets(l,MAXLINE,stdin))
+#define clear_line(l) (*l='\0');
+
+#endif
+
+
 int main(int argc, char *argv[])
 {
   int ret = 0;
-  char *line = NULL;
+  char *line = buf;
   char *ln;
   vec_t stack = NULL;
  
@@ -337,13 +351,13 @@ int main(int argc, char *argv[])
     printf("GERKU 0.0.1-beta\nType ! for available commands.\n");
     prtstack(stack);
 
-    while((ret != QUIT) && (line = linenoise("gerku> ")) != NULL) {
+    while((ret != QUIT) && get_line(line)!= NULL) {
       ln = line;
       skp("&+s",ln,&ln);
 
       ret = (*ln == '!')? command(ln+1) : eval(stack,ln);
 
-      free(line); line = NULL;
+      clear_line(line);
       if (ret == WIPE) wipestack(stack);
       prtstack(stack);
     }
@@ -355,7 +369,7 @@ int main(int argc, char *argv[])
   }
 
   vecfree(stack);
-  if (line) free(line);
+  clear_line(line);
 
   return (0);
 }
