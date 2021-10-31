@@ -191,7 +191,7 @@ static int8_t *get_elm(vec_t v,int32_t n)
     }
     else { errno = ENOMEM; return NULL; }
   }
-  return (v->vec) + (n * v->esz);
+  return (int8_t *)((v->vec) + (n * v->esz));
 }
 
 void *vecset(vec_t v, int32_t n, void *e)
@@ -199,7 +199,7 @@ void *vecset(vec_t v, int32_t n, void *e)
   int8_t *elm;
 
   if (!v || !e) { errno = EINVAL; return NULL; }
-  if (n=VEC_NONDX) n = veccount(v);
+  if (n==VEC_NONDX) n = veccount(v);
   elm = get_elm(v,n);
   if (elm) {
     memcpy(elm,e,v->esz);
@@ -288,6 +288,7 @@ int vecdeq(vec_t v)
 }
 
 // FILE like
+#if 0 // TODO
 
 static int vec_isnot_FILE(vec_t v)
 {
@@ -415,6 +416,7 @@ void *vec_search(vec_t v,veckey_t *k)
 {
   return NULL;
 }
+#endif // TODO
 
 #endif // VEC_MAIN
 #endif // VEC_VERSION

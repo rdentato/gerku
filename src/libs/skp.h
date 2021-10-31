@@ -280,7 +280,7 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
                  else W(s_chr != 0);
                  break;
 
-      case 'd' : W(is_digit(s_chr));  break;
+      case 'd' : W(is_digit(s_chr)); break;
       case 'x' : W(is_xdigit(s_chr)); break;
       case 'a' : W(is_alpha(s_chr)); break;
       case 'u' : W(is_upper(s_chr)); break;
@@ -288,6 +288,7 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
       case 's' : W(is_space(s_chr)); break;
       case 'w' : W(is_blank(s_chr)); break;
       case 'n' : W(is_break(s_chr)); break;
+      case 'c' : W(is_ctrl(s_chr)); break;
       
       case '@' : ret = match_not? MATCHED_GOALNOT : MATCHED_GOAL;
                  break;
