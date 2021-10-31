@@ -7,7 +7,10 @@
 
 
 #define LIBS_MAIN
+
+#ifndef DEBUG
 #define DEBUG DEBUG_TEST
+#endif
 
 #include "gerku.h"
 
@@ -111,7 +114,6 @@ void wipestack(vec_t stack)
 
 int popnode(vec_t stack)
 {
-  node_t *nd;
   if (veccount(stack)>0) {
     wipenode(vectop(stack));
     vecdrop(stack);
@@ -246,7 +248,6 @@ int reduce_unquote(vec_t stack)
 {
   int ret = 0;
   node_t *nd1;
-  int32_t len1;
   char *newstr;
   if (veccount(stack) > 1) {
     nd1 = vectop(stack,-1);
