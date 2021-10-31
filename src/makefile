@@ -15,6 +15,7 @@ CC=gcc
 CFLAGS=-O2 -Wall
 
 gerku$(_EXE): gerku.o
+	gcc -o gerku$(_EXE) gerku.o
 
 clean:
 	rm -f gerku$(_EXE)
