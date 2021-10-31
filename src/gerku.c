@@ -54,6 +54,10 @@ int command(char *ln)
     return 0;
   }
 
+  if (strncmp("print",ln,4) == 0) {
+    return 0;
+  }
+
   if (strncmp("wipe",ln,4) == 0) {
     return WIPE;
   }
@@ -70,7 +74,7 @@ int command(char *ln)
   fputs("  !list        list of defined words\n",stderr );
   fputs("  !load file   load definitions from file\n",stderr );
   fputs("  !save file   save definitions to file\n",stderr );
-  fputs("  !stack       print current stack\n",stderr );
+  fputs("  !print       print current stack\n",stderr );
   fputs("  !trace       toggle reduction tracing\n",stderr );
   fputs("  !quit        exit the repl\n",stderr );
   fputs("  !wipe [all]  wipe the stack [and the dictionary]\n",stderr );
