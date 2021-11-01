@@ -420,6 +420,8 @@ char *skp_(char *pat, char *src, char **end, int *alt)
   char *goalnot = NULL;
 
   if (!pat || !src ) { errno = 1; return src; }
+  
+  if (alt) *alt = -1;
 
   if (pat[0] == '&' && pat[1] == '>') {
     skpto = 1;
