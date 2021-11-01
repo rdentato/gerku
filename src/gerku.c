@@ -5,9 +5,6 @@
 **  https://opensource.org/licenses/MIT
 */
 
-
-#define LIBS_MAIN
-
 #ifndef DEBUG
 #define DEBUG DEBUG_TEST
 #endif
@@ -24,21 +21,56 @@ typedef struct {
   uint16_t len;
 } node_t;
 
-typedef struct {
-  char *word;
+vec_t dict = NULL;
 
-} word_t;
+// Don't trust strdup exists
+char *dupstr(char *s)
+{
+  char *new_s;
+  int n = strlen(s)+1;
+  if ((new_s = malloc(n))) memcpy(new_s,s,n);
+  return new_s;
+}
 
+// ($) $ pippo = $1 $1 dip $2 unquote
+int add_word(char *source)
+{
+  char *df = source;
+  
+  char *name ;
+  char *end ;
 
+  skp("&+s",df,&df);
+  printf("Defining %s\n",df);
+
+  name = skp("&>&[A-Za-z_]&*[A-Za-z0-9_-]&@&*s=",df, &end);
+  
+  if (end <= name) {
+    printf("ERROR IN DEF\n");
+    return 0;
+  }
+  
+  dbgtrc("DEF: name: %.*s",(int)(end-name),name);
+
+  // Get args
+  // Get name
+
+  // Get def
+
+  return 0;
+}
+
+#define chkcmd(s,l,n) ((strncmp(s,l,n) == 0) && ((l[n] == '\0') || isspace(l[n])))
 int command(char *ln)
 {
-  if (strncmp("list",ln,4) == 0) {
-    fputs("($A) ($B) concat = ($A $B)\n",stderr );
-    fputs("$A dup = $A $A\n",stderr );
-    fputs("$A quote = ($A)\n",stderr );
-    fputs("$A remove =\n",stderr );
-    fputs("$A $B swap = $B $A\n",stderr );
-    fputs("($A) unquote = $A\n",stderr );
+  if (chkcmd("list",ln,4)) {
+    fputs("($) ($) concat = ($1 $2)\n",stderr );
+    fputs("$ dup = $1 $1\n",stderr );
+    fputs("$ quote = ($1)\n",stderr );
+    fputs("$ remove =\n",stderr );
+    fputs("$ $ swap = $2 $1\n",stderr );
+    fputs("($) unquote = $1\n",stderr );
+
     fputs("c = concat\n",stderr );
     fputs("d = dup\n",stderr );
     fputs("q = quote\n",stderr );
@@ -48,25 +80,30 @@ int command(char *ln)
     return 0;
   }
 
-  if (strncmp("trace",ln,4) == 0) {
+  if (chkcmd("trace",ln,5)) {
     trace = !trace;
     printf("Trace is %s\n","OFF\0ON" + (trace*4));
     return 0;
   }
 
-  if (strncmp("print",ln,4) == 0) {
+  if (chkcmd("print",ln,5)) {
     return 0;
   }
 
-  if (strncmp("wipe",ln,4) == 0) {
+  if (chkcmd("def",ln,3)) {
+    add_word(ln+3);
+    return 0;
+  }
+
+  if (chkcmd("wipe",ln,4)) {
     return WIPE;
   }
 
-  if (strncmp("quit",ln,4) == 0) {
+  if (chkcmd("quit",ln,4)) {
     return QUIT;
   }
 
-  if (strncmp("help",ln,4) != 0) {
+  if (!chkcmd("help",ln,4)) {
     fputs("Available commands:\n",stderr);
   }
 
@@ -141,54 +178,56 @@ int pushnode(vec_t stack, char *start, int len)
 
 typedef struct {
    char *name;
-   int (*reduce_f)(vec_t);
+   char *(*reduce_f)(vec_t);
 } comb_base_t;
 
-int reduce_del(vec_t stack)
+char *reduce_del(vec_t stack)
 {
-  int ret = 0;
+  char *ret = NULL;
   if (veccount(stack) > 1) {
     popnode(stack); // del
     popnode(stack); // the other term
-    ret=1;
   }
   return ret;
 }
 
-int reduce_dup(vec_t stack)
+char *reduce_dup(vec_t stack)
 {
-  int ret = 0;
+  char *ret = NULL;
   node_t *nd;
 
   if (veccount(stack) > 1) {
     popnode(stack); // dup
     nd = vectop(stack);
-    pushnode(stack, nd->str, nd->len ); // the other term
+    ret = dupstr(nd->str);
   }
   return ret;
 }
 
-int reduce_swap(vec_t stack)
+char * reduce_swap(vec_t stack)
 {
-  int ret = 0;
+  char *ret = NULL;
   node_t *nd1;
   node_t *nd2;
-  node_t ndtmp;
 
   if (veccount(stack) > 2) {
     popnode(stack); // swap
     nd1 = vectop(stack);
     nd2 = vectop(stack,-1);
-    ndtmp = *nd1;
-    *nd1 = *nd2;
-    *nd2 = ndtmp;
+
+    ret = nd2->str;
+    nd2->str = nd1->str;
+    nd2->len = nd1->len;
+
+    nd1->str = NULL; // Avoid free()
+    popnode(stack);
   }
   return ret;
 }
 
-int reduce_concat(vec_t stack)
+char *reduce_concat(vec_t stack)
 {
-  int ret = 0;
+  char *ret = NULL;
   node_t *nd1;
   node_t *nd2;
   int32_t len1;
@@ -221,9 +260,9 @@ int reduce_concat(vec_t stack)
   return ret;
 }
 
-int reduce_quote(vec_t stack)
+char *reduce_quote(vec_t stack)
 {
-  int ret = 0;
+  char *ret = NULL;
   node_t *nd1;
   int32_t len1;
   char *newstr;
@@ -248,9 +287,9 @@ int reduce_quote(vec_t stack)
 
 int eval(vec_t stack, char *ln);
 
-int reduce_unquote(vec_t stack)
+char *reduce_unquote(vec_t stack)
 {
-  int ret = 0;
+  char *ret = 0;
   node_t *nd1;
   char *newstr;
   if (veccount(stack) > 1) {
@@ -258,11 +297,16 @@ int reduce_unquote(vec_t stack)
     if (nd1->str[0] == '(') {
       newstr = nd1->str;
       newstr[nd1->len-1] = '\0';
-      nd1->str = NULL;
+      for (int k=0; k < nd1->len-2; k++) {
+        newstr[k] = newstr[k+1];
+      }
+      newstr[nd1->len-2] = '\0';
+
+      nd1->str = NULL; // avoid free()
       popnode(stack); // unquote
       popnode(stack); // term
-      eval(stack, newstr+1);
-      free(newstr);
+
+      ret = newstr;
     }
   }
   return ret;
@@ -278,9 +322,9 @@ comb_base_t base[] = {
   { NULL, NULL}
 };
 
-int reduce(vec_t stack)
+char *reduce(vec_t stack)
 {
-  int ret = 0;
+  char *ret = NULL;
   node_t *nd;
   comb_base_t *r;
 
@@ -296,33 +340,86 @@ int reduce(vec_t stack)
   return ret;
 }
 
-int eval(vec_t stack, char *ln)
-{
-  int ret = 0;
-  char *start = ln;
-  char *end;
-  skp("&+s",start,&start);
 
-  while (*start) {
-    
-    end = skp("&+[A-Za-z_]&*[A-Za-z0-9_-]\1&B\2",start);
-    if (end > start) {
-//      printf("PUSH: %.*s\n",(int)(end-start),start);
-      pushnode(stack, start, (end-start));
-      if (trace) prtstack(stack);
-      if (reduce(stack) && trace) prtstack(stack);
-      start = end;
-      skp("&+s",start,&start);
+typedef struct {
+   char *ln;
+   char *cur;
+} evalstr_t;
+
+int eval_lns(vec_t stack, vec_t lns)
+{
+  char *end;
+  evalstr_t *curln;
+  char *newln;
+  int prev_depth;
+
+  while (veccount(lns) > 0) {
+    curln = vectop(lns);
+    newln = NULL;
+   _dbgtrc("CURLN: %p", (void *)curln);
+   
+    skp("&+s",curln->cur,&(curln->cur));
+
+   _dbgtrc("EVAL: %s (%p)",curln->cur,(void *)(curln->cur));
+    while (*(curln->cur)) {
+      end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]\1&B\2",curln->cur);
+      if (end > curln->cur) {
+  //      printf("PUSH: %.*s\n",(int)(end-cur),cur);
+        pushnode(stack, curln->cur, (end - curln->cur));
+        curln->cur = end;
+        skp("&+s",curln->cur,&(curln->cur));
+
+        if (trace) prtstack(stack);
+        prev_depth = veccount(stack);
+
+        newln = reduce(stack);
+       _dbgtrc("REDUCED: %s",newln?newln:"\"\"");
+
+        if (newln) {
+          vecpush(lns,&((evalstr_t){newln, newln}));
+         _dbgtrc("PUSHED: %s (%d)",newln,veccount(lns));
+          break;
+        }
+        
+        if (trace && veccount(stack) != prev_depth) prtstack(stack);
+        
+      }
+      else {
+        fprintf(stderr, "ERROR: Invalid term.\n");
+        fprintf(stderr, "%.*s...\n",(int)(curln->cur - curln->ln + 1), curln->cur);
+        return 1;
+      }
     }
-    else {
-      fprintf(stderr, "ERROR: Invalid term.\n");
-      fprintf(stderr, "%.*s...\n",(int)(start-ln+1),ln);
-      ret = 1;
-      break;
+    if (!newln) {
+      free(curln->ln);
+      curln->ln = NULL;
+      vecdrop(lns);
     }
   }
+  return 0;
+}
+
+int eval(vec_t stack, char *ln)
+{
+  int ret=0;
+  char *firstln;
+  vec_t lns=NULL;
+
+  if (!ln || !*ln) return 0;
+
+  lns = vecnew(evalstr_t);
+  throwif(!lns,ENOMEM);
+
+  firstln = dupstr(ln); // Will be freed by eval_lns
+  throwif(!firstln,ENOMEM);
+
+  vecpush(lns,&((evalstr_t){firstln,firstln}));
+  ret = eval_lns(stack,lns);
+  vecfree(lns);
   return ret;
 }
+
+// REPL ******************
 
 #ifdef USE_LINENOISE
 
@@ -339,14 +436,15 @@ char buf[MAXLINE];
 
 #endif
 
-
 int main(int argc, char *argv[])
 {
   int ret = 0;
   char *line = buf;
   char *ln;
   vec_t stack = NULL;
- 
+
+  dict = vecnew(node_t);
+
   try {
  
     stack = vecnew(node_t);
@@ -355,7 +453,7 @@ int main(int argc, char *argv[])
     printf("GERKU 0.0.1-beta\nType ! for available commands.\n");
     prtstack(stack);
 
-    while((ret != QUIT) && get_line(line)!= NULL) {
+    while((ret != QUIT) && (get_line(line) != NULL)) {
       ln = line;
       skp("&+s",ln,&ln);
 
@@ -372,6 +470,7 @@ int main(int argc, char *argv[])
     abort();
   }
 
+  vecfree(dict);
   vecfree(stack);
   clear_line(line);
 
