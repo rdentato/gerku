@@ -12,10 +12,13 @@ _EXE=
 endif
 
 CC=gcc
-CFLAGS=-O2 -Wall # -DUSE_LINENOISE
+CFLAGS=-O2 -Wall  -DUSE_LINENOISE
+#CFLAGS=-g -Wall  -DUSE_LINENOISE
 
-gerku$(_EXE): gerku.o
-	gcc -o gerku$(_EXE) gerku.o
+gerku$(_EXE): libs.o gerku.o
+	gcc -o gerku$(_EXE) gerku.o libs.o
+
+libs.o: libs.c
 
 clean:
-	rm -f gerku$(_EXE) gerku.o
+	rm -f gerku$(_EXE) *.o
