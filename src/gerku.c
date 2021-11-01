@@ -16,13 +16,6 @@
 
 int trace = 0;
 
-typedef struct {
-  char *str;
-  uint16_t len;
-} node_t;
-
-vec_t dict = NULL;
-
 // Don't trust strdup exists
 char *dupstr(char *s)
 {
@@ -32,51 +25,206 @@ char *dupstr(char *s)
   return new_s;
 }
 
-// ($) $ pippo = $1 $1 dip $2 unquote
-int add_word(char *source)
+typedef struct {
+  char *str;
+  uint16_t len;
+} node_t;
+
+// DICTIONARY ******
+
+vec_t dict = NULL;
+
+char **search_word(char *word)
 {
-  char *df = source;
-  
-  char *name ;
-  char *end ;
+  char **v=vec(dict);
+  for (int k=0; k<veccount(dict); k++) {
+    if (strcmp(v[k],word) == 0) return v+k;
+  }
+  return NULL;
+}
 
-  skp("&+s",df,&df);
-  printf("Defining %s\n",df);
 
-  name = skp("&>&[A-Za-z_]&*[A-Za-z0-9_-]&@&*s=",df, &end);
+
+/* 
+             ╭── n ──╮
+  ┌──────┬─┬─┬───────┬─┬──────┬─┐
+  │ word │0│n│ ┆ ┆ ┆ │l│ body │0│
+  └──────┴─┴─┴───────┴─┴──────┴─┘
+            ▲ ▲ 
+            │ ╰─ # of occurences in the body 
+            │    msb set means it is a quote
+            │
+            ╰─ number of arguments 
+
+*/
+
+// (@) @ pippo = @1 @1 dip @2 unquote
+int add_word(char *def)
+{
+  int nargs;
+
+  char *dict_str;
+
+  char *name_start, *name_end;
+  char *args_start, *args_end;
+  char *body_start, *body_end;
+   
+  uint8_t name_size;
+  //uint8_t args_size;
+  uint8_t body_size;
+
+  if (!def || !*def) return 0;
+  _dbgtrc("Defining %s",def);
   
-  if (end <= name) {
-    printf("ERROR IN DEF\n");
+  // Will surely be enough;
+  dict_str = malloc(strlen(def)+16);
+  
+  nargs = 0;
+  args_start = skp("&+s",def);
+  args_end = args_start;
+  while(1) {
+     dict_str[nargs] = (*args_end == '@'? 0x00 : 0x80);
+     args_end = skp("(&*s@&*s)\1@\2",args_end);
+     if (errno) break;
+     nargs++;
+    _dbgtrc("ARG: %d '%02X'",nargs,(uint8_t)dict_str[nargs-1]);
+     skp("&+s",args_end, &args_end);
+  }
+  
+  if (nargs > 100) {
+    printf("Error: too many arguments.\n");
+    free(dict_str);
+    return 0;
+  }
+
+  name_start = args_end;
+  name_end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&@&*s=",name_start);
+  
+  if (name_end <= name_start) {
+    printf("Error: Syntax error in definition.\n");
+    free(dict_str);
     return 0;
   }
   
-  dbgtrc("DEF: name: %.*s",(int)(end-name),name);
+  body_start = skp("&*s=&*s",name_end);
+  body_end = skp("&+.",body_start);
 
-  // Get args
-  // Get name
+  int n;
+  for (char *s=body_start; s < body_end; s++) {
+    if (*s == '@') {
+      n = atoi(s+1);
+      if (n < 1 || nargs < n) {
+        printf("Error: Invalid reference in definition.\n");
+        free(dict_str);
+        return 0;
+      }
+      n--;
+      dict_str[n] = ((uint8_t)dict_str[n]+1);
+    }
+  }
 
-  // Get def
+ _dbgblk {
+    for (int k=0; k<nargs; k++) {
+      dbgtrc("ARG[%d] %02X",k,(uint8_t)dict_str[k]);
+    }
+  }
+
+  while (args_end > args_start && isspace(args_end[-1]))
+    args_end--;
+
+  name_size = (uint8_t) (name_end - name_start);
+  //args_size = (uint8_t) (args_end - args_start);
+  body_size = (uint8_t) (body_end - body_start);
+
+ _dbgtrc("DEF: name: '%.*s'",name_size, name_start);
+ _dbgtrc("DEF: args: '%.*s' (%d)",args_size, args_start,nargs);
+ _dbgtrc("DEF: body: '%.*s'",body_size, body_start);
+
+  // move args after the name
+
+  for (int k=nargs-1; k >=0 ; k--) { 
+    dict_str[(name_size+2)+k] = dict_str[k];
+  }
+  dict_str[name_size+1] = (int8_t)nargs;
+
+  memcpy(dict_str,name_start,name_size);
+  dict_str[name_size]= '\0' ;
+
+  dict_str[name_size+1+1+nargs] = (int8_t)body_size;
+  memcpy(dict_str+name_size+1+1+nargs+1, body_start,body_size+1);
+
+  char **w = search_word(dict_str);
+
+  if (!w) {
+    vecpush(dict, &dict_str);
+  }
+  else {
+    free(*w);
+    *w = dict_str;
+  }
+
+  // if word already exists
+  //   replace def
+  // else
+  //   add definition                      
 
   return 0;
 }
+
+int del_word(char *word)
+{
+  char **w;
+  char **x;
+
+  while (isspace(*word)) word++;
+  w = search_word(word);
+  if (w) {
+    free(*w); *w = NULL;
+    x = vectop(dict);
+    *w = *x;
+    vecdrop(dict);
+  }
+  return 0;
+}
+
+int list_words()
+{
+  char **v = vec(dict);
+  char *s;
+  int nargs;
+
+  for (int k=0; k<veccount(dict); k++) {
+    s=v[k];
+    while (*s) s++;
+    s++;
+    nargs = *s++;
+    for (int j=0; j<nargs; j++) {
+      printf("%s ", ( *s & 0x80 ? "(@)" : "@"));
+      s++;
+    }
+    
+    printf("%s =",v[k]);
+    s++; // len
+    if (*s) printf(" %s",s);
+    putc('\n',stdout);
+  }
+  return 0;
+}
+
+// COMMANDS ****
 
 #define chkcmd(s,l,n) ((strncmp(s,l,n) == 0) && ((l[n] == '\0') || isspace(l[n])))
 int command(char *ln)
 {
   if (chkcmd("list",ln,4)) {
-    fputs("($) ($) concat = ($1 $2)\n",stderr );
-    fputs("$ dup = $1 $1\n",stderr );
-    fputs("$ quote = ($1)\n",stderr );
-    fputs("$ remove =\n",stderr );
-    fputs("$ $ swap = $2 $1\n",stderr );
-    fputs("($) unquote = $1\n",stderr );
+    fputs("(@) (@) concat = (@1 @2)\n",stderr );
+    fputs("@ dup = @1 @1\n",stderr );
+    fputs("@ quote = (@1)\n",stderr );
+    fputs("@ remove =\n",stderr );
+    fputs("@ @ swap = @2 @1\n",stderr );
+    fputs("(@) unquote = @1\n",stderr );
 
-    fputs("c = concat\n",stderr );
-    fputs("d = dup\n",stderr );
-    fputs("q = quote\n",stderr );
-    fputs("r = remove\n",stderr );
-    fputs("s = swap\n",stderr );
-    fputs("u = unquote\n",stderr );
+    list_words();
     return 0;
   }
 
@@ -91,8 +239,11 @@ int command(char *ln)
   }
 
   if (chkcmd("def",ln,3)) {
-    add_word(ln+3);
-    return 0;
+    return add_word(ln+3);
+  }
+
+  if (chkcmd("del",ln,3)) {
+    return del_word(ln+3);
   }
 
   if (chkcmd("wipe",ln,4)) {
@@ -114,6 +265,8 @@ int command(char *ln)
   fputs("  !print       print current stack\n",stderr );
   fputs("  !trace       toggle reduction tracing\n",stderr );
   fputs("  !quit        exit the repl\n",stderr );
+  fputs("  !def         define a new word\n",stderr );
+  fputs("  !del         delete a sword\n",stderr );
   fputs("  !wipe [all]  wipe the stack [and the dictionary]\n",stderr );
 
   return 0;
@@ -285,8 +438,6 @@ char *reduce_quote(vec_t stack)
   return ret;
 }
 
-int eval(vec_t stack, char *ln);
-
 char *reduce_unquote(vec_t stack)
 {
   char *ret = 0;
@@ -312,6 +463,75 @@ char *reduce_unquote(vec_t stack)
   return ret;
 }
 
+char *reduce_word(vec_t stack, char *word)
+{
+  char *ret = NULL; 
+ _dbgtrc("REDUCE WORD: '%s'",word);
+
+  char **w = search_word(word);
+  if (w) {
+    int32_t size = 0;
+    node_t *nd;
+    int nargs =0;
+    char *args;
+    char *s = *w;
+    char *t;
+    // check arguments
+    while(*s) s++;
+    s++;
+    nargs = *s++;
+    args = s;
+
+    // Check for enough arguments
+    if (veccount(stack) <= nargs) return NULL;
+    
+    size = 2*nargs+16;
+    nd = vectop(stack); // word
+    node_t *nd1 = nd - nargs;
+    // Check args type (quote/term)
+    for (int k=0; k< nargs; k++, s++, nd1++) {
+      
+      if ((*s & 0x80) && (nd1->str[0] != '('))
+        return NULL;
+
+      size += nd1->len * (*s & 0x7F);
+    }
+
+    // Build expressions
+    size += *s++;
+   _dbgtrc("size=%d",size);
+    ret = malloc(size);
+    t = ret;
+    int n;
+    int l;
+    while (*s) {
+      if (*s == '@') {
+        n = (atoi(++s)-1);
+        l = (args[n] & 0x80 )? 1 : 0;
+        n = -nargs + n;
+        while (isdigit(*s)) s++;
+        s--;
+
+        memcpy(t,nd[n].str+l ,nd[n].len - (2*l));
+
+        t += nd[n].len - (2*l);
+
+        //*t++ =' ';
+      }
+      else *t++ = *s;
+      *t = '\0';
+      s++;
+    }
+   _dbgtrc("expr: '%s'",ret);
+    // pop
+    for (int k=0; k<=nargs; k++)
+      popnode(stack);
+  }
+
+  return ret;
+}
+
+
 comb_base_t base[] = {
   { "remove", reduce_del} ,
   { "dup", reduce_dup} ,
@@ -328,15 +548,24 @@ char *reduce(vec_t stack)
   node_t *nd;
   comb_base_t *r;
 
-  if (veccount(stack) == 0) return 0;
+  if (veccount(stack) == 0) return NULL;
 
   nd = vectop(stack);
-  for (r = base; (r->name); r++) {
-    if (strcmp(nd->str,r->name) == 0) {
-      ret = r->reduce_f(stack);
-      return ret;
+
+  if (nd->str[0] == '(') return NULL;
+
+  ret = reduce_word(stack, nd->str);
+
+  if (ret == NULL) {
+    // Search among the "hard-wired" rules
+    for (r = base; (r->name); r++) {
+      if (strcmp(nd->str,r->name) == 0) {
+        ret = r->reduce_f(stack);
+        return ret;
+      }
     }
   }
+
   return ret;
 }
 
@@ -429,7 +658,7 @@ char *buf=NULL;
 
 #else 
 
-#define MAXLINE 256
+#define MAXLINE 512
 char buf[MAXLINE];
 #define get_line(l) (fprintf(stdout,"gerku> "),fgets(l,MAXLINE,stdin))
 #define clear_line(l) (*l='\0');
@@ -443,14 +672,14 @@ int main(int argc, char *argv[])
   char *ln;
   vec_t stack = NULL;
 
-  dict = vecnew(node_t);
+  dict = vecnew(char *);
 
   try {
  
     stack = vecnew(node_t);
     throwif(!stack,ENOMEM);
 
-    printf("GERKU 0.0.1-beta\nType ! for available commands.\n");
+    printf("GERKU 0.0.2-beta\nType ! for available commands.\n");
     prtstack(stack);
 
     while((ret != QUIT) && (get_line(line) != NULL)) {
@@ -470,8 +699,15 @@ int main(int argc, char *argv[])
     abort();
   }
 
+ _dbgtrc("DICT: %d",veccount(dict));
+
+  char **v = vec(dict);
+  for (int k=0; k<veccount(dict); free(v[k++])) ;
   vecfree(dict);
+
+  wipestack(stack);
   vecfree(stack);
+  
   clear_line(line);
 
   return (0);
