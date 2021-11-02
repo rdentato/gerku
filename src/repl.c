@@ -17,6 +17,7 @@
 #define WIPE 254
 
 static int trace = 0;
+static int wipe = 0;
 
 // COMMANDS ****
 
@@ -54,6 +55,11 @@ static int command(char *ln)
   }
 
   if (chkcmd("wipe",ln,4)) {
+    skp("&+![a]",ln,&ln);
+    if (strncmp(ln,"auto",4) == 0) {
+      wipe = !wipe;
+      printf("Wipe is %s\n",&("OFF\0ON"[(wipe*4)]));
+    }
     return WIPE;
   }
 
@@ -74,7 +80,7 @@ static int command(char *ln)
   fputs("  !quit        exit the repl\n",stderr );
   fputs("  !def         define a new word\n",stderr );
   fputs("  !del         delete a sword\n",stderr );
-  fputs("  !wipe [all]  wipe the stack [and the dictionary]\n",stderr );
+  fputs("  !wipe [auto] wipe the stack [and toggles autowipe]\n",stderr );
 
   return 0;
 }
@@ -103,11 +109,12 @@ int repl(vec_t stack)
     ln = line;
     skp("&+s",ln,&ln);
 
-   ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
+    ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
 
-   clear_line(line);
-   if (ret == WIPE) wipe_stack(stack);
-   print_stack(stack);
+    clear_line(line);
+    if (ret == WIPE) wipe_stack(stack);
+    print_stack(stack);
+    if (wipe) wipe_stack(stack);
   }
   return ret;
 }
