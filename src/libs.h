@@ -18,6 +18,11 @@
 #endif
 #endif
 
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <assert.h>
+
 #include "libs/dbg.h"
 #include "libs/skp.h"
 #include "libs/vec.h"

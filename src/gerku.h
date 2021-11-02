@@ -26,5 +26,6 @@
 #include "libs.h"
 #include "dict.h"
 #include "eval.h"
+#include "repl.h"
 
 #endif
