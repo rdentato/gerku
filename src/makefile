@@ -21,6 +21,7 @@ LINENOISE=-DUSE_LINENOISE
 # Uncomment the second line to get gdb read executable
 CFLAGS=-O2 -Wall $(LINENOISE)
 #CFLAGS=-g -Wall $(LINENOISE)
+#CFLAGS=-ggdb3 -Wall $(LINENOISE)
 
 OBJS=libs.o dict.o eval.o gerku.o
 
