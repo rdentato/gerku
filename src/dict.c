@@ -86,7 +86,7 @@ int add_word(char *def)
   }
 
   name_start = args_end;
-  name_end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&@&*s=",name_start);
+  name_end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&?[?]&@&*s=",name_start);
   
   if (name_end <= name_start) {
     printf("Error: Syntax error in definition.\n");
