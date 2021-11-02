@@ -24,5 +24,7 @@
 #include <stdlib.h>
 
 #include "libs.h"
+#include "dict.h"
+#include "eval.h"
 
 #endif

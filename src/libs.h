@@ -6,6 +6,7 @@
 */
 
 #ifndef LIBS_H
+#define LIBS_H
 
 #ifdef LIBS_MAIN
 #define DBG_MAIN
@@ -17,7 +18,6 @@
 #endif
 #endif
 
-
 #include "libs/dbg.h"
 #include "libs/skp.h"
 #include "libs/vec.h"
@@ -25,5 +25,8 @@
 #ifdef USE_LINENOISE
 #include "libs/linenoise.h"
 #endif
+
+char *dupstr(char *s);
+char *dupnstr(char *s, int n);
 
 #endif // LIBS_H
