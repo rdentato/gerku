@@ -8,22 +8,21 @@
 #include "libs.h"
 #include "dict.h"
 
-
 typedef struct {
   char *str;
   uint16_t len;
-} node_t;
+} term_t;
 
 vec_t init_stack()
 {
-  vec_t stack = vecnew(node_t);
+  vec_t stack = vecnew(term_t);
   throwif(!stack,ENOMEM);
   return stack;
 }
 
 void print_stack(vec_t stack)
 {
-  node_t *v;
+  term_t *v;
 
   v=vec(stack);
   fputs("|-> ",stdout);
@@ -33,20 +32,20 @@ void print_stack(vec_t stack)
   putchar('\n');
 }
 
-static void wipenode(node_t *nd)
+static void wipeterm(term_t *trm)
 {
-  throwif(!nd,ERANGE);
-  free(nd->str);
-  nd->str = NULL;
-  nd->len = 0;
+  throwif(!trm,ERANGE);
+  free(trm->str);
+  trm->str = NULL;
+  trm->len = 0;
 }
 
 void wipe_stack(vec_t stack)
 {
-  node_t *v;
+  term_t *v;
   v=vec(stack);
   for(int k=0; k<veccount(stack); k++) {
-    wipenode(v+k);
+    wipeterm(v+k);
   }
   veccount(stack,0);
 }
@@ -57,16 +56,16 @@ vec_t free_stack(vec_t stack)
   return vecfree(stack);
 }
 
-static int popnode(vec_t stack)
+static int popterm(vec_t stack)
 {
   if (veccount(stack)>0) {
-    wipenode(vectop(stack));
+    wipeterm(vectop(stack));
     vecdrop(stack);
   }
   return 0;
 }
 
-static int pushnode(vec_t stack, char *start, int len)
+static int pushterm(vec_t stack, char *start, int len)
 {
   char *term;
   
@@ -75,7 +74,7 @@ static int pushnode(vec_t stack, char *start, int len)
 
   memcpy(term,start,len);
   term[len] = '\0';
-  vecpush(stack,&((node_t){term, len}));
+  vecpush(stack,&((term_t){term, len}));
 
   return 0;
 }
@@ -89,8 +88,8 @@ char *reduce_del(vec_t stack)
 {
   char *ret = NULL;
   if (veccount(stack) > 1) {
-    popnode(stack); // del
-    popnode(stack); // the other term
+    popterm(stack); // del
+    popterm(stack); // the other term
   }
   return ret;
 }
@@ -98,12 +97,12 @@ char *reduce_del(vec_t stack)
 static char *reduce_dup(vec_t stack)
 {
   char *ret = NULL;
-  node_t *nd;
+  term_t *trm;
 
   if (veccount(stack) > 1) {
-    popnode(stack); // dup
-    nd = vectop(stack);
-    ret = dupstr(nd->str);
+    popterm(stack); // dup
+    trm = vectop(stack);
+    ret = dupstr(trm->str);
   }
   return ret;
 }
@@ -111,20 +110,20 @@ static char *reduce_dup(vec_t stack)
 static char *reduce_swap(vec_t stack)
 {
   char *ret = NULL;
-  node_t *nd1;
-  node_t *nd2;
+  term_t *trm1;
+  term_t *trm2;
 
   if (veccount(stack) > 2) {
-    popnode(stack); // swap
-    nd1 = vectop(stack);
-    nd2 = vectop(stack,-1);
+    popterm(stack); // swap
+    trm1 = vectop(stack);
+    trm2 = vectop(stack,-1);
 
-    ret = nd2->str;
-    nd2->str = nd1->str;
-    nd2->len = nd1->len;
+    ret = trm2->str;
+    trm2->str = trm1->str;
+    trm2->len = trm1->len;
 
-    nd1->str = NULL; // Avoid free()
-    popnode(stack);
+    trm1->str = NULL; // Avoid free()
+    popterm(stack);
   }
   return ret;
 }
@@ -132,32 +131,32 @@ static char *reduce_swap(vec_t stack)
 static char *reduce_concat(vec_t stack)
 {
   char *ret = NULL;
-  node_t *nd1;
-  node_t *nd2;
+  term_t *trm1;
+  term_t *trm2;
   int32_t len1;
   int32_t len2;
   char *newstr;
   if (veccount(stack) > 2) {
-    nd1 = vectop(stack,-1);
-    nd2 = vectop(stack,-2);
-    if (nd1->str[0] == '(' && nd2->str[0] == '(') {
-      len1 = nd1->len-1;
-      len2 = nd2->len-1;
+    trm1 = vectop(stack,-1);
+    trm2 = vectop(stack,-2);
+    if (trm1->str[0] == '(' && trm2->str[0] == '(') {
+      len1 = trm1->len-1;
+      len2 = trm2->len-1;
       newstr=malloc(len1 + len2 + 2); // 1 space and 1 \0
       throwif(!newstr,ENOMEM);
 
-      memcpy(newstr,nd2->str,len2);
+      memcpy(newstr,trm2->str,len2);
       newstr[len2] = ' ';
 
-      memcpy(newstr+len2+1,nd1->str+1,len1);
+      memcpy(newstr+len2+1,trm1->str+1,len1);
       newstr[len2+len1+1] = '\0';
       
-      free(nd2->str);
-      nd2->str = newstr;
-      nd2->len = len1+len2+1;
+      free(trm2->str);
+      trm2->str = newstr;
+      trm2->len = len1+len2+1;
 
-      popnode(stack); // concat
-      popnode(stack); // nd1
+      popterm(stack); // concat
+      popterm(stack); // trm1
     } 
    
   }
@@ -167,24 +166,24 @@ static char *reduce_concat(vec_t stack)
 static char *reduce_quote(vec_t stack)
 {
   char *ret = NULL;
-  node_t *nd1;
+  term_t *trm1;
   int32_t len1;
   char *newstr;
   if (veccount(stack) > 1) {
-    popnode(stack); // quote
-    nd1 = vectop(stack);
-    len1 = nd1->len+2;
+    popterm(stack); // quote
+    trm1 = vectop(stack);
+    len1 = trm1->len+2;
     newstr=malloc(len1 + 1); 
     throwif(!newstr,ENOMEM);
 
     newstr[0] = '(';
-    memcpy(newstr+1,nd1->str,len1-2);
+    memcpy(newstr+1,trm1->str,len1-2);
     newstr[len1-1] = ')';
     newstr[len1] = '\0';
 
-    free(nd1->str);
-    nd1->str = newstr;
-    nd1->len = len1;
+    free(trm1->str);
+    trm1->str = newstr;
+    trm1->len = len1;
   }
   return ret;
 }
@@ -192,21 +191,21 @@ static char *reduce_quote(vec_t stack)
 static char *reduce_unquote(vec_t stack)
 {
   char *ret = 0;
-  node_t *nd1;
+  term_t *trm1;
   char *newstr;
   if (veccount(stack) > 1) {
-    nd1 = vectop(stack,-1);
-    if (nd1->str[0] == '(') {
-      newstr = nd1->str;
-      newstr[nd1->len-1] = '\0';
-      for (int k=0; k < nd1->len-2; k++) {
+    trm1 = vectop(stack,-1);
+    if (trm1->str[0] == '(') {
+      newstr = trm1->str;
+      newstr[trm1->len-1] = '\0';
+      for (int k=0; k < trm1->len-2; k++) {
         newstr[k] = newstr[k+1];
       }
-      newstr[nd1->len-2] = '\0';
+      newstr[trm1->len-2] = '\0';
 
-      nd1->str = NULL; // avoid free()
-      popnode(stack); // unquote
-      popnode(stack); // term
+      trm1->str = NULL; // avoid free()
+      popterm(stack); // unquote
+      popterm(stack); // term
 
       ret = newstr;
     }
@@ -222,7 +221,7 @@ static char *reduce_word(vec_t stack, char *word)
   char **w = search_word(word);
   if (w) {
     int32_t size = 0;
-    node_t *nd;
+    term_t *trm;
     int nargs =0;
     char *args;
     char *s = *w;
@@ -237,15 +236,15 @@ static char *reduce_word(vec_t stack, char *word)
     if (veccount(stack) <= nargs) return NULL;
     
     size = 2*nargs+16;
-    nd = vectop(stack); // word
-    node_t *nd1 = nd - nargs;
+    trm = vectop(stack); // word
+    term_t *trm1 = trm - nargs;
     // Check args type (quote/term)
-    for (int k=0; k< nargs; k++, s++, nd1++) {
+    for (int k=0; k< nargs; k++, s++, trm1++) {
       
-      if ((*s & 0x80) && (nd1->str[0] != '('))
+      if ((*s & 0x80) && (trm1->str[0] != '('))
         return NULL;
 
-      size += nd1->len * (*s & 0x7F);
+      size += trm1->len * (*s & 0x7F);
     }
 
     // Build expressions
@@ -263,9 +262,9 @@ static char *reduce_word(vec_t stack, char *word)
         while (isdigit(*s)) s++;
         s--;
 
-        memcpy(t,nd[n].str+l ,nd[n].len - (2*l));
+        memcpy(t,trm[n].str+l ,trm[n].len - (2*l));
 
-        t += nd[n].len - (2*l);
+        t += trm[n].len - (2*l);
 
         //*t++ =' ';
       }
@@ -276,7 +275,7 @@ static char *reduce_word(vec_t stack, char *word)
    _dbgtrc("expr: '%s'",ret);
     // pop
     for (int k=0; k<=nargs; k++)
-      popnode(stack);
+      popterm(stack);
   }
 
   return ret;
@@ -296,21 +295,20 @@ comb_base_t base[] = {
 static char *reduce(vec_t stack)
 {
   char *ret = NULL;
-  node_t *nd;
+  term_t *trm;
   comb_base_t *r;
 
   if (veccount(stack) == 0) return NULL;
 
-  nd = vectop(stack);
+  trm = vectop(stack);
 
-  if (nd->str[0] == '(') return NULL;
+  if (trm->str[0] == '(') return NULL;
 
-  ret = reduce_word(stack, nd->str);
+  ret = reduce_word(stack, trm->str);
 
-  if (ret == NULL) {
-    // Search among the "hard-wired" rules
+  if (ret == NULL) { // Search among the "hard-wired" rules
     for (r = base; (r->name); r++) {
-      if (strcmp(nd->str,r->name) == 0) {
+      if (strcmp(trm->str,r->name) == 0) {
         ret = r->reduce_f(stack);
         return ret;
       }
@@ -322,79 +320,104 @@ static char *reduce(vec_t stack)
 
 typedef struct {
    char *ln;
-   char *cur;
-} evalstr_t;
+   char *pos;
+} expr_t;
 
-static int eval_lns(vec_t stack, vec_t lns, int trace)
+static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 {
   char *end;
-  evalstr_t *curln;
-  char *newln;
+  expr_t *cur_expr;
+  char *new_expr;
   int prev_depth;
+  int alt;
 
-  while (veccount(lns) > 0) {
-    curln = vectop(lns);
-    newln = NULL;
-   _dbgtrc("CURLN: %p", (void *)curln);
+  // Evaluate all the expressions in the stack;
+  while (veccount(expressions) > 0) {
+    cur_expr = vectop(expressions);
+    new_expr = NULL;
    
-    skp("&+s",curln->cur,&(curln->cur));
+    skp("&+s",cur_expr->pos,&(cur_expr->pos));
 
-   _dbgtrc("EVAL: %s (%p)",curln->cur,(void *)(curln->cur));
-    while (*(curln->cur)) {
-      end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]\1&B\2",curln->cur);
-      if (end > curln->cur) {
-  //      printf("PUSH: %.*s\n",(int)(end-cur),cur);
-        pushnode(stack, curln->cur, (end - curln->cur));
-        curln->cur = end;
-        skp("&+s",curln->cur,&(curln->cur));
+   _dbgtrc("EVAL: %s (%p)",cur_expr->pos,(void *)(cur_expr->pos));
+
+    // evaluate current expressions till the end,
+    // unless a new expression is provided!
+    while (*(cur_expr->pos) && !new_expr) {
+
+      // terms are sequence of letters/numbers or a quote
+      // (a sequence of terms in parenthesis )
+      end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]\1&B\2",cur_expr->pos, NULL, &alt);
+      // Only accept '(' as parenthesis (not '[' or '{')!
+      if ((alt == '\2') && (*(cur_expr->pos) != '(')) end = NULL;
+
+      if (end > cur_expr->pos) { //found a term!
+       _dbgtrc("PUSH: %.*s\n",(int)(end-cur_expr->pos),cur_expr->pos);
+        
+        // Push the term on the evaluation stack
+        pushterm(stack, cur_expr->pos, (end - cur_expr->pos));
+
+        cur_expr->pos = end;
+        skp("&+s",cur_expr->pos,&(cur_expr->pos));
 
         if (trace) print_stack(stack);
-        prev_depth = veccount(stack);
+        prev_depth = veccount(stack);  // Used to avoid printing the same stack twice
 
-        newln = reduce(stack);
-       _dbgtrc("REDUCED: %s",newln?newln:"\"\"");
+        // evaluate the top of the stack. 
+        // If the result is an expression, return it!
+        new_expr = reduce(stack);
+       _dbgtrc("REDUCED: %s",new_expr?new_expr:"\"\"");
 
-        if (newln) {
-          vecpush(lns,&((evalstr_t){newln, newln}));
-         _dbgtrc("PUSHED: %s (%d)",newln,veccount(lns));
-          break;
+        if (new_expr) {
+          vecpush(expressions,&((expr_t){new_expr, new_expr}));
+         _dbgtrc("PUSHED: %s (%d)",new_expr,veccount(expressions));
         }
-        
-        if (trace && veccount(stack) != prev_depth) print_stack(stack);
+        else {
+          if (trace && (veccount(stack) != prev_depth))
+            print_stack(stack);
+        }
         
       }
       else {
         fprintf(stderr, "ERROR: Invalid term.\n");
-        fprintf(stderr, "%.*s...\n",(int)(curln->cur - curln->ln + 1), curln->cur);
+        fprintf(stderr, "%.*s...\n",(int)(cur_expr->pos - cur_expr->ln + 1), cur_expr->pos);
         return 1;
       }
     }
-    if (!newln) {
-      free(curln->ln);
-      curln->ln = NULL;
-      vecdrop(lns);
+    if (!new_expr) { // We reached the end of the expression. Done for this line!
+      free(cur_expr->ln);
+      cur_expr->ln = NULL;
+      vecdrop(expressions);
     }
   }
   return 0;
 }
 
+// We'll manage the inevitable recursion with an explicit stack of expressions instead
+// of recursive calls to the eval function.
+
 int eval(vec_t stack, char *ln, int trace)
 {
   int ret=0;
   char *firstln;
-  vec_t lns=NULL;
+  vec_t exprs=NULL;
 
   if (!ln || !*ln) return 0;
 
-  lns = vecnew(evalstr_t);
-  throwif(!lns,ENOMEM);
+  // Create the stack for expressions to be evaluated
+  exprs = vecnew(expr_t);
+  throwif(!exprs,ENOMEM);
 
-  firstln = dupstr(ln); // Will be freed by eval_lns
+  // Push the line got as an argument as the first line
+  firstln = dupstr(ln); // Will be freed by eval_expressions
   throwif(!firstln,ENOMEM);
+  vecpush(exprs,&((expr_t){firstln,firstln}));
+ 
+  // evaluate the stack of expressions
+  ret = eval_expressions(stack,exprs,trace);
+  
+  // Get rid of the stack of expressions
+  exprs = vecfree(exprs);
 
-  vecpush(lns,&((evalstr_t){firstln,firstln}));
-  ret = eval_lns(stack,lns,trace);
-  lns = vecfree(lns);
   return ret;
 }
 
