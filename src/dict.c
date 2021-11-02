@@ -151,9 +151,6 @@ int add_word(char *def)
     vecpush(dict, &dict_str);
   }
 
-  // if word already exists replace def
-  // else                  add definition                      
-
   return 0;
 }
 
@@ -164,7 +161,9 @@ int del_word(char *word)
 
   while (isspace(*word)) word++;
   w = search_word(word);
-  if (w) {
+  if (w) { 
+    // swap the defintion with the
+    // last one and remove the last one.
     free(*w); *w = NULL;
     x = vectop(dict);
     *w = *x;
@@ -206,8 +205,27 @@ void free_dict()
   dict = vecfree(dict);
 }
 
+static char *std_words[] = {
+  "@ @ s=@2 @1",
+  "(@) u=@1",
+  "@ d=@1 @1",
+  "@ r=",
+  "(@) (@) c=(@1 @2)",
+  "@ @ T=@1",
+  "@ @ F=@2",
+  NULL
+} ;
+
 void init_dict()
 {
   dict = vecnew(char *);
   throwif(!dict, ENOMEM);
+
+  char **d = std_words;
+  
+  while (*d) {
+    add_word(*d);
+    d++;
+  }
+  
 }
