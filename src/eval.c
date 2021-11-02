@@ -346,7 +346,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]\1&B\2",cur_expr->pos, NULL, &alt);
+      end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&?[?]\1&B\2",cur_expr->pos, NULL, &alt);
       // Only accept '(' as parenthesis (not '[' or '{')!
       if ((alt == '\2') && (*(cur_expr->pos) != '(')) end = NULL;
 

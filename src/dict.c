@@ -211,13 +211,21 @@ static char *std_words[] = {
   "@ d=@1 @1",
   "@ r=",
   "(@) (@) c=(@1 @2)",
-  "@ @ T=@1",
-  "@ @ F=@2",
+
+  "@ (@) T=@2",
+  "(@) @ F=@1",
+
+  "@ (@) K=@2",
+  "(@) @ Z=@1",
+  "@ (@) (@) S = (@1 @2) @1 @3",
+
   NULL
 } ;
 
 void init_dict()
 {
+
+  
   dict = vecnew(char *);
   throwif(!dict, ENOMEM);
 
