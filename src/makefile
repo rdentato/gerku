@@ -14,16 +14,28 @@ endif
 
 # Force gcc as compiler
 CC=gcc 
+#CC=clang
 
 # Comment the following if you want to use fgets based REPL
 LINENOISE=-DUSE_LINENOISE
 
-# Uncomment the second line to get gdb read executable
-CFLAGS=-O2 -Wall $(LINENOISE)
-#CFLAGS=-g -Wall $(LINENOISE)
-#CFLAGS=-ggdb3 -Wall $(LINENOISE)
+# Leave uncommented the desired level of debug
+DBG=-DNDEBUG
+#DBG=-DDEBUG=DEBUG_ERROR
+#DBG=-DDEBUG=DEBUG_WARN 
+#DBG=-DDEBUG=DEBUG_INFO 
+#DBG=-DDEBUG=DEBUG_TEST 
+#DBG=-DDEBUG=DEBUG_MEM  
 
-OBJS=libs.o dict.o eval.o gerku.o
+# Optimization level (regular, gdb, valgrind)
+OPT=-O2
+#OPT=-g
+#OPT=-ggdb3
+
+# Uncomment  gdb read executable
+CFLAGS= $(OPT) -Wall $(LINENOISE) $(DBG)
+
+OBJS=libs.o dict.o eval.o repl.o gerku.o
 
 gerku$(_EXE): $(OBJS)
 	$(CC) -o gerku$(_EXE) $(OBJS)
