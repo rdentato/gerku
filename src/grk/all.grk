@@ -1,0 +1,28 @@
+# gerku
+
+!def         (@) (@) W = (@1) (@1) @2
+!def         (@) (@) K = @2
+!def     (@) (@) (@) B = ((@3) @2) @1
+!def     (@) (@) (@) C = (@2) (@3) @1
+!def             (@) I = @1
+!def             (@) D = @1 @1
+!def         (@) (@) E = @2 @1
+!def         (@) (@) J = (@1 @2)
+!def             (@) Q = ((@1))
+!def     (@) (@) (@) S = ((@1) @2) (@1) @3
+
+# mlatu
+!def              @  d = @1 @1
+!def           @  @  c = (@1 @1)
+!def              @  q = (@1)
+!def             (@) u = @1
+!def              @  r =
+!def           @  @  s = @2 @1
+
+# mlatu fullname
+!def               dup = d 
+!def            concat = c
+!def             quote = q
+!def           unquote = u
+!def            remove = r
+!def              swap = s

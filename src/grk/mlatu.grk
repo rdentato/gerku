@@ -1,0 +1,16 @@
+# Standard combinators for mlatu
+
+!def     @  d = @1 @1
+!def  @  @  c = (@1 @1)
+!def     @  q = (@1)
+!def    (@) u = @1
+!def     @  r =
+!def  @  @  s = @2 @1
+
+!def      dup = d 
+!def   concat = c
+!def    quote = q
+!def  unquote = u
+!def   remove = r
+!def     swap = s
+
