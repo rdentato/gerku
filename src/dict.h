@@ -10,9 +10,12 @@
 
 void init_dict();
 void free_dict();
-int list_words(FILE *out);
+int list_words(FILE *out,int def);
 int del_word(char *word);
 int add_word(char *def);
 char **search_word(char *word);
+int load_defs(char *filename);
+int save_defs(char *filename);
+int del_dict();
 
 #endif

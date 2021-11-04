@@ -79,139 +79,6 @@ static int pushterm(vec_t stack, char *start, int len)
   return 0;
 }
 
-typedef struct {
-   char *name;
-   char *(*reduce_f)(vec_t);
-} comb_base_t;
-
-char *reduce_del(vec_t stack)
-{
-  char *ret = NULL;
-  if (veccount(stack) > 1) {
-    popterm(stack); // del
-    popterm(stack); // the other term
-  }
-  return ret;
-}
-
-static char *reduce_dup(vec_t stack)
-{
-  char *ret = NULL;
-  term_t *trm;
-
-  if (veccount(stack) > 1) {
-    popterm(stack); // dup
-    trm = vectop(stack);
-    ret = dupstr(trm->str);
-  }
-  return ret;
-}
-
-static char *reduce_swap(vec_t stack)
-{
-  char *ret = NULL;
-  term_t *trm1;
-  term_t *trm2;
-
-  if (veccount(stack) > 2) {
-    popterm(stack); // swap
-    trm1 = vectop(stack);
-    trm2 = vectop(stack,-1);
-
-    ret = trm2->str;
-    trm2->str = trm1->str;
-    trm2->len = trm1->len;
-
-    trm1->str = NULL; // Avoid free()
-    popterm(stack);
-  }
-  return ret;
-}
-
-static char *reduce_concat(vec_t stack)
-{
-  char *ret = NULL;
-  term_t *trm1;
-  term_t *trm2;
-  int32_t len1;
-  int32_t len2;
-  char *newstr;
-  if (veccount(stack) > 2) {
-    trm1 = vectop(stack,-1);
-    trm2 = vectop(stack,-2);
-    if (trm1->str[0] == '(' && trm2->str[0] == '(') {
-      len1 = trm1->len-1;
-      len2 = trm2->len-1;
-      newstr=malloc(len1 + len2 + 2); // 1 space and 1 \0
-      throwif(!newstr,ENOMEM);
-
-      memcpy(newstr,trm2->str,len2);
-      newstr[len2] = ' ';
-
-      memcpy(newstr+len2+1,trm1->str+1,len1);
-      newstr[len2+len1+1] = '\0';
-      
-      free(trm2->str);
-      trm2->str = newstr;
-      trm2->len = len1+len2+1;
-
-      popterm(stack); // concat
-      popterm(stack); // trm1
-    } 
-   
-  }
-  return ret;
-}
-
-static char *reduce_quote(vec_t stack)
-{
-  char *ret = NULL;
-  term_t *trm1;
-  int32_t len1;
-  char *newstr;
-  if (veccount(stack) > 1) {
-    popterm(stack); // quote
-    trm1 = vectop(stack);
-    len1 = trm1->len+2;
-    newstr=malloc(len1 + 1); 
-    throwif(!newstr,ENOMEM);
-
-    newstr[0] = '(';
-    memcpy(newstr+1,trm1->str,len1-2);
-    newstr[len1-1] = ')';
-    newstr[len1] = '\0';
-
-    free(trm1->str);
-    trm1->str = newstr;
-    trm1->len = len1;
-  }
-  return ret;
-}
-
-static char *reduce_unquote(vec_t stack)
-{
-  char *ret = 0;
-  term_t *trm1;
-  char *newstr;
-  if (veccount(stack) > 1) {
-    trm1 = vectop(stack,-1);
-    if (trm1->str[0] == '(') {
-      newstr = trm1->str;
-      newstr[trm1->len-1] = '\0';
-      for (int k=0; k < trm1->len-2; k++) {
-        newstr[k] = newstr[k+1];
-      }
-      newstr[trm1->len-2] = '\0';
-
-      trm1->str = NULL; // avoid free()
-      popterm(stack); // unquote
-      popterm(stack); // term
-
-      ret = newstr;
-    }
-  }
-  return ret;
-}
 
 static char *reduce_word(vec_t stack, char *word)
 {
@@ -250,27 +117,30 @@ static char *reduce_word(vec_t stack, char *word)
     // Build expressions
     size += *s++;
    _dbgtrc("size=%d",size);
-    ret = malloc(size);
-    t = ret;
-    int n;
-    int l;
-    while (*s) {
-      if (*s == '@') {
-        n = (atoi(++s)-1);
-        l = (args[n] & 0x80 )? 1 : 0;
-        n = -nargs + n;
-        while (isdigit(*s)) s++;
-        s--;
-
-        memcpy(t,trm[n].str+l ,trm[n].len - (2*l));
-
-        t += trm[n].len - (2*l);
-
-        //*t++ =' ';
+    if (*s) { // if the body is empty, no need of additional reduce
+      ret = malloc(size);
+      *ret = '\0';
+      t = ret;
+      int n;
+      int l;
+      while (*s) {
+        if (*s == '@') {
+          n = (atoi(++s)-1);
+          l = (args[n] & 0x80 )? 1 : 0;
+          n = -nargs + n;
+          while (isdigit(*s)) s++;
+          s--;
+  
+          memcpy(t,trm[n].str+l ,trm[n].len - (2*l));
+  
+          t += trm[n].len - (2*l);
+  
+          //*t++ =' ';
+        }
+        else *t++ = *s;
+        *t = '\0';
+        s++;
       }
-      else *t++ = *s;
-      *t = '\0';
-      s++;
     }
    _dbgtrc("expr: '%s'",ret);
     // pop
@@ -282,21 +152,10 @@ static char *reduce_word(vec_t stack, char *word)
 }
 
 
-comb_base_t base[] = {
-  { "remove", reduce_del} ,
-  { "dup", reduce_dup} ,
-  { "swap", reduce_swap},
-  { "concat", reduce_concat},
-  { "quote", reduce_quote},
-  { "unquote", reduce_unquote},
-  { NULL, NULL}
-};
-
 static char *reduce(vec_t stack)
 {
   char *ret = NULL;
   term_t *trm;
-  comb_base_t *r;
 
   if (veccount(stack) == 0) return NULL;
 
@@ -305,15 +164,6 @@ static char *reduce(vec_t stack)
   if (trm->str[0] == '(') return NULL;
 
   ret = reduce_word(stack, trm->str);
-
-  if (ret == NULL) { // Search among the "hard-wired" rules
-    for (r = base; (r->name); r++) {
-      if (strcmp(trm->str,r->name) == 0) {
-        ret = r->reduce_f(stack);
-        return ret;
-      }
-    }
-  }
 
   return ret;
 }
@@ -351,13 +201,11 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
       if ((alt == '\2') && (*(cur_expr->pos) != '(')) end = NULL;
 
       if (end > cur_expr->pos) { //found a term!
-       _dbgtrc("PUSH: %.*s\n",(int)(end-cur_expr->pos),cur_expr->pos);
-        
+       _dbgtrc("PUSH: '%.*s' (%d)",(int)(end-cur_expr->pos),cur_expr->pos,(int)(end-cur_expr->pos));
         // Push the term on the evaluation stack
         pushterm(stack, cur_expr->pos, (end - cur_expr->pos));
 
-        cur_expr->pos = end;
-        skp("&+s",cur_expr->pos,&(cur_expr->pos));
+        cur_expr->pos = skp("&+s",end);
 
         if (trace) print_stack(stack);
         prev_depth = veccount(stack);  // Used to avoid printing the same stack twice
@@ -365,7 +213,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
         // evaluate the top of the stack. 
         // If the result is an expression, return it!
         new_expr = reduce(stack);
-       _dbgtrc("REDUCED: %s",new_expr?new_expr:"\"\"");
+      _dbgtrc("REDUCED: '%s'",new_expr?new_expr:"\"\"");
 
         if (new_expr) {
           vecpush(expressions,&((expr_t){new_expr, new_expr}));
@@ -379,7 +227,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
       }
       else {
         fprintf(stderr, "ERROR: Invalid term.\n");
-        fprintf(stderr, "%.*s...\n",(int)(cur_expr->pos - cur_expr->ln + 1), cur_expr->pos);
+        fprintf(stderr, "%.*s... (%02X)\n",(int)(cur_expr->pos - cur_expr->ln + 1), cur_expr->pos,*cur_expr->pos);
         return 1;
       }
     }

@@ -62,7 +62,7 @@ int add_word(char *def)
   uint8_t body_size;
 
   if (!def || !*def) return 0;
-  _dbgtrc("Defining %s",def);
+ _dbgtrc("Defining %s",def);
   
   // Will surely be enough;
   dict_str = malloc(strlen(def)+16);
@@ -89,13 +89,16 @@ int add_word(char *def)
   name_end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&?[?]&@&*s=",name_start);
   
   if (name_end <= name_start) {
-    printf("Error: Syntax error in definition.\n");
+    fprintf(stderr, "Error: Syntax error in definition.\n");
+    fprintf(stderr, "%s\n",def);
     free(dict_str);
     return 0;
   }
   
   body_start = skp("&*s=&*s",name_end);
   body_end = skp("&+.",body_start);
+  while ((body_end > body_start) && isspace(body_end[-1]))
+     body_end--;
 
   int n;
   for (char *s=body_start; s < body_end; s++) {
@@ -139,7 +142,8 @@ int add_word(char *def)
   dict_str[name_size]= '\0' ;
 
   dict_str[name_size+1+1+nargs] = (int8_t)body_size;
-  memcpy(dict_str+name_size+1+1+nargs+1, body_start,body_size+1);
+  memcpy(dict_str+name_size+1+1+nargs+1, body_start,body_size);
+  *(dict_str+name_size+1+1+nargs+1+body_size)= '\0';
 
   char **w = search_word(dict_str);
 
@@ -172,7 +176,23 @@ int del_word(char *word)
   return 0;
 }
 
-int list_words(FILE *out)
+int del_dict()
+{
+  char **w;
+  int k;
+
+  k = veccount(dict);
+  if (veccount(dict) > 0) {
+    w = vec(dict);
+    while (k-- > 0) {
+      free(*w++);
+    }
+  }
+  vecclean(dict);
+  return 0;
+}
+
+int list_words(FILE *out,int def)
 {
   char **v = vec(dict);
   char *s;
@@ -183,8 +203,10 @@ int list_words(FILE *out)
     while (*s) s++;
     s++;
     nargs = *s++;
+    if (def) fprintf(out,"!def ");
+    if (nargs < 4) fprintf(out,"%*.s",(4-nargs)*4," ");
     for (int j=0; j<nargs; j++) {
-      fprintf(out, "%s ", ( *s & 0x80 ? "(@)" : "@"));
+      fprintf(out, "%s ", ( *s & 0x80 ? "(@)" : " @ "));
       s++;
     }
     
@@ -206,19 +228,16 @@ void free_dict()
 }
 
 static char *std_words[] = {
-  "@ @ s=@2 @1",
-  "(@) u=@1",
-  "@ d=@1 @1",
-  "@ r=",
-  "(@) (@) c=(@1 @2)",
-
-  "@ (@) T=@2",
-  "(@) @ F=@1",
-
-  "@ (@) K=@2",
-  "(@) @ Z=@1",
-  "@ (@) (@) S = (@1 @2) @1 @3",
-
+      "(@) (@) W = (@1) (@1) @2",
+      "(@) (@) K = @2",
+  "(@) (@) (@) B = ((@3) @2) @1",
+  "(@) (@) (@) C = (@2) (@3) @1",
+          "(@) I = @1",
+          "(@) D = @1 @1",
+      "(@) (@) E = @2 @1",
+      "(@) (@) J = (@1 @2)",
+          "(@) Q = ((@1))",
+  "(@) (@) (@) S = ((@1) @2) (@1) @3",
   NULL
 } ;
 
@@ -236,4 +255,46 @@ void init_dict()
     d++;
   }
   
+}
+
+#define MAXLEN 256
+static char buf[MAXLEN];
+
+int load_defs(char *filename)
+{
+  int ret =1;
+  FILE *f = NULL;
+  char *def;
+
+  f=fopen(filename,"r");
+  if (f) {
+    ret = 0;
+
+    while (fgets(buf,MAXLEN,f)) {
+      def = skp("&+s",buf);
+     _dbgtrc("LOADING: %s",def);
+      if (strncmp("!def ",def,5) == 0) {
+       _dbgtrc("Loading def for: `%s`",def+5);
+        add_word(def+5);
+      }
+    }
+ 
+    fclose(f);
+  }
+
+  return ret;
+}
+
+int save_defs(char *filename)
+{
+  int ret = 1;
+  FILE *f = NULL;
+
+  if ((f = fopen(filename,"w"))) {
+    list_words(f,1);
+    ret = 0;
+    fclose(f);
+  }
+    
+  return ret;
 }

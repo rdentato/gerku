@@ -11,34 +11,25 @@
 #include "eval.h"
 
 
-// REPL ******************
-
 #define QUIT 255
 #define WIPE 254
 
 static int trace = 0;
 static int wipe = 0;
 
-// COMMANDS ****
+
 
 #define chkcmd(s,l,n) ((strncmp(s,l,n) == 0) && ((l[n] == '\0') || isspace(l[n])))
 static int command(char *ln)
 {
   if (chkcmd("list",ln,4)) {
-    fputs("(@) (@) concat = (@1 @2)\n",stderr );
-    fputs("@ dup = @1 @1\n",stderr );
-    fputs("@ quote = (@1)\n",stderr );
-    fputs("@ remove =\n",stderr );
-    fputs("@ @ swap = @2 @1\n",stderr );
-    fputs("(@) unquote = @1\n",stderr );
-
-    list_words(stdout);
+    list_words(stdout,0);
     return 0;
   }
 
   if (chkcmd("trace",ln,5)) {
     trace = !trace;
-    printf("Trace is %s\n",&("OFF\0ON"[(trace*4)]));
+    fprintf(stderr,"Trace is %s\n",&("OFF\0ON"[(trace*4)]));
     return 0;
   }
 
@@ -51,16 +42,34 @@ static int command(char *ln)
   }
 
   if (chkcmd("del",ln,3)) {
-    return del_word(ln+3);
+    skp("&+s",ln+3,&ln);
+    if (strncmp(ln,"!all",4) == 0)
+      return del_dict();
+    else
+      return del_word(ln);
   }
 
   if (chkcmd("wipe",ln,4)) {
     skp("&+![a]",ln,&ln);
     if (strncmp(ln,"auto",4) == 0) {
       wipe = !wipe;
-      printf("Wipe is %s\n",&("OFF\0ON"[(wipe*4)]));
+      fprintf(stderr,"Wipe is %s\n",&("OFF\0ON"[(wipe*4)]));
     }
     return WIPE;
+  }
+
+  if (chkcmd("load",ln,4)) {
+    skp("&+s",ln+4,&ln);
+    if (load_defs(ln)) 
+      fprintf(stderr,"Unable to load definitions.\n");
+    return 0;
+  }
+
+  if (chkcmd("save",ln,4)) {
+    skp("&+s",ln+4,&ln);
+    if (save_defs(ln)) 
+      fprintf(stderr,"Unable to save definitions.\n");
+    return 0;
   }
 
   if (chkcmd("quit",ln,4)) {
@@ -71,16 +80,16 @@ static int command(char *ln)
     fputs("Available commands:\n",stderr);
   }
 
-  fputs("  !help        this help\n",stderr );
-  fputs("  !list        list of defined words\n",stderr );
-  fputs("  !load file   load definitions from file\n",stderr );
-  fputs("  !save file   save definitions to file\n",stderr );
-  fputs("  !print       print current stack\n",stderr );
-  fputs("  !trace       toggle reduction tracing\n",stderr );
-  fputs("  !quit        exit the repl\n",stderr );
-  fputs("  !def         define a new word\n",stderr );
-  fputs("  !del         delete a sword\n",stderr );
-  fputs("  !wipe [auto] wipe the stack [and toggles autowipe]\n",stderr );
+  fputs("  !help              this help\n",stderr );
+  fputs("  !list              list of defined words\n",stderr );
+  fputs("  !load file         load definitions from file\n",stderr );
+  fputs("  !save file         save definitions to file\n",stderr );
+  fputs("  !print             print current stack\n",stderr );
+  fputs("  !trace             toggle reduction tracing\n",stderr );
+  fputs("  !quit              exit the repl\n",stderr );
+  fputs("  !def ...           define a new word\n",stderr );
+  fputs("  !del word | !all   delete a word [all words!]\n",stderr );
+  fputs("  !wipe [auto]       wipe the stack [and toggles autowipe]\n",stderr );
 
   return 0;
 }
@@ -102,9 +111,9 @@ int repl(vec_t stack)
   char *ln;
   char *line = buf;
 
-  printf("GERKU 0.0.2-beta\nType ! for available commands.\n");
+  printf("GERKU 0.0.4-beta\nType ! for available commands.\n");
   print_stack(stack);
-  dbgtrc("DBG TRACE");
+ _dbgtrc("DBG TRACE");
   while((ret != QUIT) && (get_line(line) != NULL)) {
     ln = line;
     skp("&+s",ln,&ln);
