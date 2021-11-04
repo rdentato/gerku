@@ -15,8 +15,7 @@
 #define WIPE 254
 
 static int trace = 0;
-static int wipe = 0;
-
+static int wipe = 1;
 
 
 #define chkcmd(s,l,n) ((strncmp(s,l,n) == 0) && ((l[n] == '\0') || isspace(l[n])))
