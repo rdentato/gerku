@@ -97,11 +97,21 @@ static int command(char *ln)
   #define get_line(l) (l = linenoise("gerku> "))
   char *buf=NULL;
   #define clear_line(l) (l? free(l) : 0, l = NULL)
+              
+  #define load_history() do { linenoiseHistorySetMaxLen(20);\
+                             linenoiseHistoryLoad(".history.grk"); \
+                        } while(0)
+
+  #define add_history(line) do { linenoiseHistoryAdd(line); \
+                                linenoiseHistorySave(".history.grk"); \
+                              }  while(0)
 #else 
   #define MAXLINE 512
   char buf[MAXLINE];
   #define get_line(l) (fprintf(stdout,"gerku> "),fgets(l,MAXLINE,stdin))
   #define clear_line(l) (*l='\0');
+  #define load_history()
+  #define add_history(line)
 #endif
 
 int repl(vec_t stack)
@@ -113,7 +123,11 @@ int repl(vec_t stack)
   printf("GERKU 0.0.4-beta\nType ! for available commands.\n");
   print_stack(stack);
  _dbgtrc("DBG TRACE");
+  load_history();
+  
   while((ret != QUIT) && (get_line(line) != NULL)) {
+    add_history(line);
+
     ln = line;
     skp("&+s",ln,&ln);
 
