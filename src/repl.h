@@ -10,6 +10,7 @@
 
 #include "libs.h"
 
+int run_file(char *filename, vec_t stack);
 int repl(vec_t stack);
 
 #endif

@@ -93,12 +93,14 @@ static int command(char *ln)
   return 0;
 }
 
+#define MAXLEN 1024
+
 #ifdef USE_LINENOISE
   #define get_line(l) (l = linenoise("gerku> "))
   char *buf=NULL;
   #define clear_line(l) (l? free(l) : 0, l = NULL)
               
-  #define load_history() do { linenoiseHistorySetMaxLen(20);\
+  #define load_history() do { linenoiseHistorySetMaxLen(50);\
                              linenoiseHistoryLoad(".history.grk"); \
                         } while(0)
 
@@ -106,21 +108,62 @@ static int command(char *ln)
                                 linenoiseHistorySave(".history.grk"); \
                               }  while(0)
 #else 
-  #define MAXLINE 512
-  char buf[MAXLINE];
-  #define get_line(l) (fprintf(stdout,"gerku> "),fgets(l,MAXLINE,stdin))
+  char buf[MAXLEN];
+  #define get_line(l) (fprintf(stdout,"gerku> "),fgets(l,MAXLEN,stdin))
   #define clear_line(l) (*l='\0');
   #define load_history()
   #define add_history(line)
 #endif
 
+
+int run_file(char *filename, vec_t stack)
+{
+  int ret =1;
+  FILE *f = NULL;
+  char *ln;
+  char *line = NULL;
+
+  int trc = trace;
+  int wpe = wipe;
+
+  f=fopen(filename,"r");
+  if (f) {
+    ret = 0;
+    wipe = 0;
+    trace = 0;
+
+    line = malloc(MAXLEN);
+    throwif(!line,ENOMEM);
+
+   _dbgtrc("Running %s",filename);
+
+    while (fgets(line,MAXLEN,f)) {
+      ln = line;
+      skp("&+s",ln,&ln);
+     _dbgtrc("line: '%s'",ln);
+      ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
+      if (ret == WIPE || wipe) wipe_stack(stack);
+    }
+
+    free(line);
+    fclose(f);
+  }
+
+  print_stack(stack);
+  trace = trc;
+  wipe = wpe;
+  return ret;
+}
+
+
+extern char *gerku_version;
 int repl(vec_t stack)
 {
   int ret = 0;
   char *ln;
   char *line = buf;
 
-  printf("GERKU 0.0.4-beta\nType ! for available commands.\n");
+  printf("%s\nType ! for available commands.\n",gerku_version);
   print_stack(stack);
  _dbgtrc("DBG TRACE");
   load_history();

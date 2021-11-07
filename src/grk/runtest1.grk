@@ -1,0 +1,5 @@
+!del !all
+!def @ @ XX = (@2 (@1))
+(x) (y) XX
+!print
+!list
