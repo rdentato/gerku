@@ -258,18 +258,21 @@ void init_dict()
   
 }
 
-#define MAXLEN 256
-static char buf[MAXLEN];
+#define MAXLEN 1024
 
 int load_defs(char *filename)
 {
   int ret =1;
   FILE *f = NULL;
   char *def;
+  
+  char *buf = NULL;
 
   f=fopen(filename,"r");
   if (f) {
     ret = 0;
+    buf = malloc(MAXLEN);
+    throwif(!buf,ENOMEM);
 
     while (fgets(buf,MAXLEN,f)) {
       def = skp("&+s",buf);
@@ -279,7 +282,7 @@ int load_defs(char *filename)
         add_word(def+5);
       }
     }
- 
+    free(buf);
     fclose(f);
   }
 
