@@ -11,7 +11,7 @@
  (____/ 
 
 ```
-  An interepreter Concatenative Combinators as described in:
+  An interepreter for Concatenative Combinators as described in:
 
   "The Theory of Concatenative Combinators by Brent Kerby"
   ([link](http://tunes.org/~iepos/joy.html#applic))
