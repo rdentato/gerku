@@ -13,6 +13,7 @@
 #define SKP_MAIN
 #define VEC_MAIN
 #define TRY_MAIN
+#define VRG_MAIN
 #ifdef USE_LINENOISE
 #define LINENOISE_MAIN
 #endif
@@ -27,6 +28,7 @@
 #include "libs/skp.h"
 #include "libs/vec.h"
 #include "libs/try.h"
+#include "libs/vrg.h"
 #ifdef USE_LINENOISE
 #include "libs/linenoise.h"
 #endif
