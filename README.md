@@ -108,5 +108,15 @@ gerku> !list
 gerku> (x) (y) COMB
 |-> ((x) y) 
 ```
-  
 
+## Kerby's combinators
+
+By default `gerku` only defines few ad-hoc combinators
+that were useful in the first stage of the project.
+
+To load the combinators used in Kerby's article just
+start `gerku` with:
+
+```
+  prj/gerku/src> ./gerku -d grk/kerby.grk
+```
