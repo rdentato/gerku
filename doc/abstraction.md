@@ -1,144 +1,263 @@
 # Abstraction algorithm
 
-## Definitions
+  In [1], Kerby discuss *abstraction* by converting expressions
+containg concatenative combinators to lambda expressions with 
+variables and then proceeds by abstracting variables from the
+lambda expressions.
 
- - An **expression** is a sequence of terms and variables
- - A **combinator** is a term
- - A **variable** is a term
- - The *nil* quote `()` is a term
- - An **expression** enclosed in parenthesis is a term (quote)
- - An **atom** is a combinator or a variable
+  This article follows a more direct approach and provides
+abstraction rules that are aimed to ease the implementatocan be 
+directly applied to expressions.
 
- - `@`       is a generic variable
- - `#`       is an atom which is not `@`
- - `$..$`    is a sequence of atoms some of which can be `@`
-           (i.e. `@` may occur in `$...$`)
- - `%..%`    is a sequence of atoms some of which can be `@`
-           (i.e. may occur in `%...%`)
+
+## Abstraction
  
-The **abstraction** of an expression `F` with respect to the
-variable `@` is denoted with `{F}[@]`.
+The result of the *abstraction* of the variable `@` from the
+expression `F` is an expression that does not contain `@` and
+that, when applied to `(@)` will return `F`:
 
-The result of the abstaction of `@` from `F` is an expression
-with no occurences of the variable `@` that, when applied to
-`@` will return `F`:
+```
+           G = {F}[(@)]  ->  (@) G = F
+```
 
-           G = {F}[@]  ->  @ G = F
+The *abstraction* of an expression `F` with respect to the
+variable `@` is denoted with `{F}[(@)]`.
 
-In a sense, abstraction is similar to compilation.
-Given an expression that contains variables, the abstraction process
-will return an expression with no variables such that applying
-that expression to a list of arguments will return the same result
-as binding those arguments to the variables in the original expression.
+In a sense, abstraction is similar to compilation. Given
+an expression `F` containing variables (the *source code*)
+we can see `{F}[(@)]` as a program that when applied to a
+term `(x)` will result in the original expression where the
+variable is replaced by `(x)`.
 
 When abstracting multiple variable we'll have:
 
-            {F}[@1 @2] = {{F}[@1]}[@2]
+```
+         {F}[(@1) (@2)] = {{F}[(@1)]}[(@2)]
+```
 
 Note that we are only interested to show that such algorithm exists
 whether is a practical one or not (abstraction usually leads to very
-long and complex expressions).
+long and complex expressions) is a different issue.
 
 ## Combinators
+
   We'll use the following combinators:
  
 ```
-               (@) I = @1       // Identity
-               (@) D = @1 @1    // Dup
-           (@) (@) K = @2       // Kill (Delete)
-           (@) (@) E = @2 @1    // Exchange (Swap)
-           (@) (@) J = (@1 @2)  // Join (concat)
-               (@) Q = ((@1))   // Quote quotes
-                @  q = (@1)     // Quote
-       (@) (@) (@) S = (@1 @2) @1 @3 
+                    (@) i    = @1
+                (@) (@) k    = @2
+                (@) (@) cons = ((@1) @2)
+                (@) (@) dip  = @2 (@1)
+                (@) (@) sip  = (@1) @2 (@1)
 ```
 
   Being able to represent any expression with the 
 combinators proves that they form a (non minimal) base.
 
-  Note the difference between the combinators `Q` and `q`.
-The first one add an extra parentesis only to quotes,
-the second one to any term to its left.
+  A note on the syntax. Rather than having *named* variables 
+as in [1], we'll use `@` to signify a variable. If followed by
+a number, it's the position in which they appear.
 
-## The algorithm
-  To find an algorithm we'll reason on the structure of expressions.
+  A definition like:
 
-       1              {}[@] = q () K
-       2            {()}[@] = q (()) K
-       3             {@}[@] = q I
-       4           {(@)}[@] = q
-       5             {#}[@] = q (#) K
-       6           {(#)}[@] = q ((#)) K
-       7        {# $..$}[@] = q ({$...$}[@]) J (#) E J I
-       8        {@ $..$}[@] = q Q D ({$..$}[@]) J J I
-       9   {(%..%) $..$}[@] = q ({%..%}[@]) ({%..%}[@]) S
+```
+       (@) (@) YY = (@2) (@1 XX)
+```
+
+  can be interpreted both in terms of stack and as
+a rewrite rule.
+
+  - *As a rewrite rule* :  if the current expression matches 
+  two quoted terms followed by `YY`, it is replaced by the left
+  hand expression in which `@1` and `@2` are replaced by the 
+  two matching terms.
+
+  - *As stack operations* : when `YY` is on top of the stack and
+  the two element below are quotes, then pop the two elements and
+  push the left hand terms after replacing `@x` with the terms
+  that were in the stack.
+
+## Abstraction rules
+  To find an algorithm we'll reason on the structure of
+expressions. We'll use the following definitions:
+
+ - An *expression* is a list of terms and variables
+ - A *combinator* is a term
+ - A *variable* is a term
+ - The *nil* quote `()` is a term
+ - An expression enclosed in parenthesis is a term (quote)
+ - An *atom* is a combinator or a variable
+
+ - `@`       is a generic variable
+ - `#..#`    is a sequence of terms that *do not* contain `@`
+             (i.e. `@` does not occur in `$...$`)
+ - `$..$`    is a sequence of terms that *may* contain `@`
+             (i.e. `@` may occur in `$...$`)
+ - `%..%`    is a sequence of terms that *does* contain `@`
+             (different from `$...$`)
+
+
+  We'll consider the expression as a list of terms and will apply the following
+abstraction rules.
+
+```
+     0      {$..$ #..#}[(@)] = {$..$}[(@)] #..#
+
+     1      {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
+     1a        {(#..#)}[(@)] = ((#..#)) k 
+     1b          {#..#}[(@)] = (#..#) k
+     1c            {()}[(@)] = (()) k
+     1d              {}[(@)] = () k
+
+     2    {(%..%) $..$}[(@)] = ({(%..%)}[(@)]) sip {$..$}[(@)]
+     2a      {(@) $..$}[(@)] = () sip {$..$}[(@)]
+     2b        {($..$)}[(@)] = ({$..$}[(@)]) cons
+     2c           {(@)}[(@)] = 
+
+     3         {@ $..$}[(@)] = (i) sip {$..$}[(@)]
+     3a             {@}[(@)] = i
+
+```
 
   Note that the expressions on the right side can't be reduced further
-  without being applied to an argument.
-
-  Rules 1-6 are easily verified. Next sections show that by apply the
-rules to the variable `@` we'll get the expected result
+without being applied to a quoted argument.
 
 ### Rule 1
+  This rule allows us to stop earlier in the abstraction process: trailing
+terms not containing `@` can be left untouched.
 
-      @ q () K
-      (@) () K
-               <- nothing
+```
+     0      {$..$ #..#}[(@)] = {$..$}[(@)] #..#
+```
 
-### rule 2
+  Let's check that rule `0` holds:
+```
+     (@) {$..$}[(@)] #..#
+     ^-------------^  by definition of abstraction
+     $..$ #..#
+```
 
-      @ q (()) K
-      (@) (()) K
-      ()
+### Rule 1
+  This rule is to be applied when the expression consists of a list
+of terms which do not contain `@` followed by a list of terms which
+may contain `@`.
 
-### rule 3
-      @ q I
-      (@) I
-      @
+```
+     1      {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
+```
 
-### rule 4
-      @ q
-      (@)
+  To prove that this rule holds, let's apply it to `@` and check 
+that the result is `#..# $..$`.
 
-### rule 5
-      @ q (#) K
-      (@) (#) K
-      #
+```
+       (@) (#..#) dip {$..$}[(@)]
+       ^-------------^                by def. of dip
+       #..# (@) {$..$}[(@)]
+            ^-------------^           by def of abstraction
+       #..# $..$
+       ^-------^                      by def of abstraction
+       (@) {#..# $..$}[(@)]
+```
 
-### rule 6
-      @ q ((#)) K
-      (@) ((#)) K
-      (#)
+  It's easy to verify that rules `1a` to `1d` hold by applying
+them to `(@)` as we did for rule `1`.
 
-### rule 7
-      @ q ({$...$}[@]) J (#) E J I
-      (@) ({$...$}[@]) J (#) E J I
-      (@ {$...$}[@]) (#) E J I
-      (#) (@ {$...$}[@]) J I
-      (# @ {$...$}[@]) I
-      # @ {$...$}[@]
-      # $..$
+  It can be also verified that rule `1` is still applicable in 
+those cases and that `1a` to `1d` are just special rules to 
+simplify the algorithm. Let's do it fo `1b` in which the
+list `$..$` is empty:
 
-### rule 8
+```
+       {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
+       {#..#}[(@)] = (#..#) dip {}[(@)]
+```
 
-      @ q Q D ({$..$}[@]) J J I
-      (@) Q D ({$..$}[@]) J J I
-      ((@)) D ({$..$}[@]) J J I
-      (@) (@) ({$..$}[@]) J J I
-      (@) (@ {$..$}[@]) J I
-      (@ @ {$..$}[@]) I
-      @ @ {$..$}[@]
-      @ $..$
+  Now let's apply it to `@`:
 
-### rule 9
+```
+       (@) (#..#) dip {}[(@)]
+       ^------------^             by def. of dip
+       #..# (@) {}[(@)]
+            ^---------^           by def. of abstraction
+       #..#
+```
 
-      @ q ({%..%}[@]) ({%..%}[@]) S
-      (@) ({%..%}[@]) ({%..%}[@]) S
-      (@ {%..%}[@]) @ {%..%}[@]
-      (@ {%..%}[@]) $..$
-      (%..%) $..$  
+  The other cases can be verified in a similar way.
 
-  Note that last step will not really be computed
-since quotes are opaque. However we know (by definition)
-that the result within the quote is the same.
-   
+### Rule 2
+  This rule is to be applied when the expression consist of
+a quote (wich contains `@`) follwed by a list of terms which
+may contain `@`.
+
+```
+     2    {(%..%) $..$}[(@)] = ({(%..%)}[(@)]) sip {$..$}[(@)]
+```
+
+  Let's apply it to `@`:
+
+```
+       (@) ({(%..%)}[(@)]) sip {$..$}[(@)]
+       ^---------------------^                by def. of sip
+       (@) {(%..%)}[(@)] (@) {$..$}[(@)]
+       ^---------------^                      by def. of abstraction
+       (%..%) (@) {$..$}[(@)]
+              ^-------------^                 by def. of abstraction
+       (%..%) $..$
+```
+
+  Rules `2a` to `2d` are special cases of rule two `2`.
+  Actually rule `2` would also work if the quote at the beginning 
+would *not* contain `@` (i.e. we could do without rule `1`.)
+
+```
+      {(%..%) $..$}[(@)] =
+             ({(%..%)}[(@)]) sip {$..$}[(@)]
+               ^----^        by hypotesis
+             ({(#..#)}[(@)]) sip {$..$}[(@)]
+              ^-----------^  
+             (((#..#)) k) sip {$..$}[(@)]
+```
+
+```
+             (@) (((#..#)) k) sip {$..$}[(@)]
+             ^------------------^
+             (@) ((#..#)) k (@) {$..$}[(@)]
+             ^------------^
+             (#..#) (@) {$..$}[(@)]
+                    ^-------------^
+             (#..#) $..$       
+```
+
+
+### Rule 3
+
+   This is the particular case when the first term is `@`.
+
+```
+     3         {@ $..$}[(@)] = (i) sip {$..$}[(@)]
+```
+
+   To show that rules 3 holds, let's apply it to `(@)`:
+
+```
+               (@) (i) sip {$..$}[(@)]
+               ^---------^
+               (@) i (@) {$..$}[(@)]
+               ^---^
+               @ (@) {$..$}[(@)]
+                 ^-------------^
+               @ $..$
+```
+
+
+## Bibliography
+
+[1]  *The Theory of Concatenative Combinators*,
+     Brent Kerby (bkerby at byu dot net).
+     Completed June 19, 2002. Updated February 5, 2007.
+     ([link](http://tunes.org/~iepos/joy.html))
+
+
+[2]  *Lambda-Calculus and Combinators, an introduction*,
+     J. Roger Hindley, Jonathan P. Seldin
+     ([link](http://www.cambridge.org/9780521898850))
