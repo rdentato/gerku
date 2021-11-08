@@ -141,7 +141,9 @@ int run_file(char *filename, vec_t stack)
       ln = line;
       skp("&+s",ln,&ln);
      _dbgtrc("line: '%s'",ln);
-      ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
+      if (*ln && *ln != '#') {
+        ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
+      }
       if (ret == WIPE || wipe) wipe_stack(stack);
     }
 
