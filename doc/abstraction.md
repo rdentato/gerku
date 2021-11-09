@@ -51,12 +51,9 @@ long and complex expressions) is a different issue.
                 (@) (@) sip  = (@1) @2 (@1)
 ```
 
-  Being able to represent any expression with the 
-combinators proves that they form a (non minimal) base.
-
-  A note on the syntax. Rather than having *named* variables 
-as in [1], we'll use `@` to signify a variable. If followed by
-a number, it's the position in which they appear.
+  Rather than having *named* variables as in [1], we'll use `@`
+to denote variables. If followed by a number, it's the position
+in which they appear in the list of arguments.
 
   A definition like:
 
@@ -64,8 +61,8 @@ a number, it's the position in which they appear.
        (@) (@) YY = (@2) (@1 XX)
 ```
 
-  can be interpreted both in terms of stack and as
-a rewrite rule.
+  can be interpreted both in terms of stack (with top being the
+leftmost term of the expression) and as a rewrite rule.
 
   - *As a rewrite rule* :  if the current expression matches 
   two quoted terms followed by `YY`, it is replaced by the left
@@ -75,18 +72,29 @@ a rewrite rule.
   - *As stack operations* : when `YY` is on top of the stack and
   the two element below are quotes, then pop the two elements and
   push the left hand terms after replacing `@x` with the terms
-  that were in the stack.
+  that were in the stack. 
 
 ## Abstraction rules
   To find an algorithm we'll reason on the structure of
-expressions. We'll use the following definitions:
+expressions having the following grammar:
 
- - An *expression* is a list of terms and variables
+```
+   expression := term+
+   term := comb | var | quote
+   quote := '(' expression? ')'
+   comb := [A-Za-z_][A-Za-z_0-9]*
+   var := '@' num
+   num := [0-9]+
+```
+
+ That can be summarized as:
+
+ - An *expression* is a list of terms
  - A *combinator* is a term
  - A *variable* is a term
  - The *nil* quote `()` is a term
- - An expression enclosed in parenthesis is a term (quote)
- - An *atom* is a combinator or a variable
+ - A *quote* (an expression enclosed in parenthesis) is a term
+
 
  - `@`       is a generic variable
  - `#..#`    is a sequence of terms that *do not* contain `@`
@@ -96,9 +104,19 @@ expressions. We'll use the following definitions:
  - `%..%`    is a sequence of terms that *does* contain `@`
              (different from `$...$`)
 
+  Given an expressions, looking at the list of terms from left to
+right there can only be the following cases:
 
-  We'll consider the expression as a list of terms and will apply the following
-abstraction rules.
+  1. The expression can be split in two parts with first terms
+     not containing the variable `@` followed by other terms possibly
+     containing `@`
+     
+  2. The first term is a quote containing `@` (otherwise we would be
+     in case 1) followed by other terms possibly containing `@`
+
+  3. The fist term is the variable `@`
+
+  This leads to the following abstraction rules:
 
 ```
      0      {$..$ #..#}[(@)] = {$..$}[(@)] #..#
@@ -111,7 +129,7 @@ abstraction rules.
 
      2    {(%..%) $..$}[(@)] = ({(%..%)}[(@)]) sip {$..$}[(@)]
      2a      {(@) $..$}[(@)] = () sip {$..$}[(@)]
-     2b        {($..$)}[(@)] = ({$..$}[(@)]) cons
+     2b        {(%..%)}[(@)] = ({%..%}[(@)]) cons
      2c           {(@)}[(@)] = 
 
      3         {@ $..$}[(@)] = (i) sip {$..$}[(@)]
@@ -120,7 +138,7 @@ abstraction rules.
 ```
 
   Note that the expressions on the right side can't be reduced further
-without being applied to a quoted argument.
+without being applied to a quote.
 
 ### Rule 1
   This rule allows us to stop earlier in the abstraction process: trailing
@@ -205,33 +223,12 @@ may contain `@`.
        (%..%) $..$
 ```
 
-  Rules `2a` to `2d` are special cases of rule two `2`.
-  Actually rule `2` would also work if the quote at the beginning 
-would *not* contain `@` (i.e. we could do without rule `1`.)
-
-```
-      {(%..%) $..$}[(@)] =
-             ({(%..%)}[(@)]) sip {$..$}[(@)]
-               ^----^        by hypotesis
-             ({(#..#)}[(@)]) sip {$..$}[(@)]
-              ^-----------^  
-             (((#..#)) k) sip {$..$}[(@)]
-```
-
-```
-             (@) (((#..#)) k) sip {$..$}[(@)]
-             ^------------------^
-             (@) ((#..#)) k (@) {$..$}[(@)]
-             ^------------^
-             (#..#) (@) {$..$}[(@)]
-                    ^-------------^
-             (#..#) $..$       
-```
+  Rules `2a` to `2d` are special cases of rule `2`.
 
 
 ### Rule 3
 
-   This is the particular case when the first term is `@`.
+   This is the rule to apply when the first term is `@`.
 
 ```
      3         {@ $..$}[(@)] = (i) sip {$..$}[(@)]
