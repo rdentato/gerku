@@ -12,9 +12,9 @@ directly applied to expressions.
 
 ## Abstraction
  
-The result of the *abstraction* of the variable `@` from the
-expression `F` is an expression that does not contain `@` and
-that, when applied to `(@)` will return `F`:
+  The result of the *abstraction* of the variable `@` from the
+expression `F` is an expression `G` that does not contain `@`
+and that, when applied to `(@)` will return `F`:
 
 ```
            G = {F}[(@)]  ->  (@) G = F
@@ -140,7 +140,7 @@ right there can only be the following cases:
   Note that the expressions on the right side can't be reduced further
 without being applied to a quote.
 
-### Rule 1
+### Rule 0
   This rule allows us to stop earlier in the abstraction process: trailing
 terms not containing `@` can be left untouched.
 
