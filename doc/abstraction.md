@@ -224,7 +224,7 @@ may contain `@`.
 ```
 
   Rules `2a` to `2d` are special cases of rule `2`.
-
+  
 
 ### Rule 3
 
