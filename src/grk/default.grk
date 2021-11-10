@@ -38,38 +38,44 @@
 
 # This is a "combinator" that create a list out of an atom
 # Note that this it's outside the theory described in the article
-!def                      @ q    = (@1)
+!def                         @ q = (@1)
 
 # Booleans
 
-!def    (@) (@) true  = (@2)
-!def    (@) (@) false = (@1
- 
-!def       (@) true!  = (true)
-!def       (@) false! = (false)
+!def               (@) (@) true  = (@2)
+!def               (@) (@) false = (@1
+                 
+!def                  (@) true!  = (true)
+!def                  (@) false! = (false)
+                 
+!def                     (@) not = (true) (false) @1
+!def                 (@) (@) and = (false) (@1) @2
+!def                  (@) (@) or = (@1) (true) @2
+!def                 (@) (@) xor = ((@1)) ((@1) not) @2 i
+                 
+!def                (@) (@) nand = ((@1) (@2) and) not i
+!def                (@) (@)  nor = ((@1) (@2) or ) not i
+!def                (@) (@) xnor = ((@1) (@2) xor) not i
 
-!def          (@) not = (true) (false) @1
-!def      (@) (@) and = (false) (@1) @2
-!def       (@) (@) or = (@1) (true) @2
-!def      (@) (@) xor = ((@1)) ((@1) not) @2 i
-
-!def     (@) (@) nand = ((@1) (@2) and) not i
-!def     (@) (@)  nor = ((@1) (@2) or ) not i
-!def     (@) (@) xnor = ((@1) (@2) xor) not i
 
 # Naturals (quoted Church-like numerals)
 
-!def (@) zero =
+!def                    (@) zero =
+!def                    (@) succ = (cons) sip @1
 
-!def (@) succ = (cons) sip @1
+## Operatons on Naturals
 
-!def (@) (@) add   = (@2) (succ) @1 
-!def (@) (@) mult  = (zero) ((@2) add i) @1
+!def                (@) (@) add  = (@2) (succ) @1 
+!def                (@) (@) mult = (zero) ((@2) add i) @1
 
-!def one   = (zero) succ
-!def two   = (one) succ
-!def three = (two) succ
-!def four  = (three) succ
-!def five  = (four) succ
+## Some Constant
 
+!def                       one   = (zero) succ
+!def                       two   = (one) succ
+!def                       three = (two) succ
+!def                       four  = (three) succ
+!def                       five  = (four) succ
 
+## Predicate to detect zero
+
+!def                   (@) zero? = ((true)) (false!) @1 i
