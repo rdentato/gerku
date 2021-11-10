@@ -1,0 +1,75 @@
+# Base combinators from the article:
+#     "The Theory of Concatenative Combinators"
+#     by Brent Kerby
+
+!def                    (@) zap  =
+!def                    (@) i    = @1
+!def                    (@) unit = ((@1))
+!def                    (@) rep  = @1 @1
+!def                    (@) m    = (@1) @1
+!def                    (@) run  = @1 (@1)
+!def                    (@) dup  = (@1) (@1)
+!def                (@) (@) k    = @2
+!def                (@) (@) z    = @1
+!def                (@) (@) nip  = (@2)
+!def                (@) (@) sap  = @2 @1
+!def                (@) (@) t    = (@2) @1
+!def                (@) (@) dip  = @2 (@1)
+!def                (@) (@) cat  = (@1 @2)
+!def                (@) (@) swat = (@2 @1)
+!def                (@) (@) swap = (@2) (@1)
+!def                (@) (@) cons = ((@1) @2)
+!def                (@) (@) take = (@2 (@1))
+!def                (@) (@) tack = (@1 (@2))
+!def                (@) (@) sip  = (@1) @2 (@1)
+!def                (@) (@) w    = (@1) (@1) @2
+!def                (@) (@) peek = (@1) (@2) (@1)
+!def                (@) (@) cake = ((@1) @2) (@2 (@1))
+!def            (@) (@) (@) poke = (@3) (@2)
+!def            (@) (@) (@) b    = ((@1) @2) @3
+!def            (@) (@) (@) c    = (@2) (@1) @3
+!def            (@) (@) (@) dig  = (@2) (@3) (@1)
+!def            (@) (@) (@) bury = (@3) (@1) (@2)
+!def            (@) (@) (@) flip = (@3) (@2) (@1)
+!def            (@) (@) (@) s    = ((@1) @2) (@1) @3
+!def        (@) (@) (@) (@) s1   = ((@1) @2) @4 (@1) @3
+!def        (@) (@) (@) (@) j    = ((@2) (@1) @4) (@3) @4
+!def    (@) (@) (@) (@) (@) j1   = ((@2) @5 (@1) @4) (@3) @4
+
+# This is a "combinator" that create a list out of an atom
+# Note that this it's outside the theory described in the article
+!def                      @ q    = (@1)
+
+# Booleans
+
+!def    (@) (@) true  = (@2)
+!def    (@) (@) false = (@1
+ 
+!def       (@) true!  = (true)
+!def       (@) false! = (false)
+
+!def          (@) not = (true) (false) @1
+!def      (@) (@) and = (false) (@1) @2
+!def       (@) (@) or = (@1) (true) @2
+!def      (@) (@) xor = ((@1)) ((@1) not) @2 i
+
+!def     (@) (@) nand = ((@1) (@2) and) not i
+!def     (@) (@)  nor = ((@1) (@2) or ) not i
+!def     (@) (@) xnor = ((@1) (@2) xor) not i
+
+# Naturals (quoted Church-like numerals)
+
+!def (@) zero =
+
+!def (@) succ = (cons) sip @1
+
+!def (@) (@) add   = (@2) (succ) @1 
+!def (@) (@) mult  = (zero) ((@2) add i) @1
+
+!def one   = (zero) succ
+!def two   = (one) succ
+!def three = (two) succ
+!def four  = (three) succ
+!def five  = (four) succ
+
+
