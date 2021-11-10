@@ -7,17 +7,16 @@
 
 #include "gerku.h"
 
-char *gerku_version="GERKU 0.0.5-beta (C) 2021 https://github.com/rdentato/gerku";
+char *gerku_version="GERKU 0.0.6-beta (C) 2021 https://github.com/rdentato/gerku";
 
 int main(int argc, char *argv[])
 {
   int ret = 0;
   vec_t stack = NULL;
   int start_repl = 1;
+  char *default_grk = "grk/default.grk";
 
   try {
-    init_dict();
-    stack = init_stack();
 
     vrgver(gerku_version);
     vrgoptions(argc,argv) {
@@ -29,11 +28,14 @@ int main(int argc, char *argv[])
         start_repl = 0;
       }
 
-      vrgopt("-d", "Delete default combinators") {
-        del_dict();
+      vrgopt("-d default", "Replace default combinators") {
+        default_grk = vrgoptarg;
       }
     }
   
+    init_dict(default_grk);
+    stack = init_stack();
+
     //load files
     for (int i = vrgargn; i<argc; i++) {
      _dbgtrc("RUN: %s",argv[i]);

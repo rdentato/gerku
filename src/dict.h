@@ -8,7 +8,7 @@
 #ifndef DICT_H
 #define DICT_H
 
-void init_dict();
+void init_dict(char *file);
 void free_dict();
 int list_words(FILE *out,int def);
 int del_word(char *word);

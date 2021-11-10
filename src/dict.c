@@ -227,37 +227,6 @@ void free_dict()
   dict = vecfree(dict);
 }
 
-static char *std_words[] = {
-      "(@) (@) W = (@1) (@1) @2",
-      "(@) (@) K = @2",
-      "(@) (@) O = @1",
-  "(@) (@) (@) B = ((@1) @2) @3",
-  "(@) (@) (@) C = (@2) (@1) @3",
-          "(@) I = @1",
-          "(@) D = (@1) (@1)",
-      "(@) (@) E = (@2) (@1)",
-      "(@) (@) J = (@1 @2)",
-          "(@) Q = ((@1))",
-  "(@) (@) (@) S = ((@1) @2) (@1) @3",
-  NULL
-} ;
-
-void init_dict()
-{
-
-  
-  dict = vecnew(char *);
-  throwif(!dict, ENOMEM);
-
-  char **d = std_words;
-  
-  while (*d) {
-    add_word(*d);
-    d++;
-  }
-  
-}
-
 #define MAXLEN 1024
 
 int load_defs(char *filename)
@@ -302,3 +271,42 @@ int save_defs(char *filename)
     
   return ret;
 }
+
+// No longer used
+
+#if 0
+static char *std_words[] = {
+      "(@) (@) W = (@1) (@1) @2",
+      "(@) (@) K = @2",
+      "(@) (@) O = @1",
+  "(@) (@) (@) B = ((@1) @2) @3",
+  "(@) (@) (@) C = (@2) (@1) @3",
+          "(@) I = @1",
+          "(@) D = (@1) (@1)",
+      "(@) (@) E = (@2) (@1)",
+      "(@) (@) J = (@1 @2)",
+          "(@) Q = ((@1))",
+  "(@) (@) (@) S = ((@1) @2) (@1) @3",
+  NULL
+} ;
+#endif 
+
+void init_dict(char *file)
+{
+  dict = vecnew(char *);
+  throwif(!dict, ENOMEM);
+
+#if 0
+  char **d = std_words;
+  
+  while (*d) {
+    add_word(*d);
+    d++;
+  }
+#endif
+
+  if (load_defs(file))
+    fprintf(stderr,"Unable to load default");
+
+}
+
