@@ -36,14 +36,14 @@
 !def        (@) (@) (@) (@) j    = ((@2) (@1) @4) (@3) @4
 !def    (@) (@) (@) (@) (@) j1   = ((@2) @5 (@1) @4) (@3) @4
 
-# This is a "combinator" that create a list out of an atom
+# This is a "combinator" that create a quote out of an atom
 # Note that this it's outside the theory described in the article
 !def                         @ q = (@1)
 
 # Booleans
 
 !def               (@) (@) true  = (@2)
-!def               (@) (@) false = (@1
+!def               (@) (@) false = (@1)
                  
 !def                  (@) true!  = (true)
 !def                  (@) false! = (false)
