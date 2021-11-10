@@ -54,9 +54,9 @@ and recompile. You will lose history and line editing features.
 
 ```
 prj/gerku/src> ./gerku -h
-GERKU 0.0.5-beta (C) 2021 https://github.com/rdentato/gerku
+GERKU 0.0.6-beta (C) 2021 https://github.com/rdentato/gerku
 Usage: gerku [OPTIONS] ...
-   -d           Delete default combinators
+   -d file      Load definitions from the specified file
    -r           Run mode (no REPL)
    -v           Version
 ```
@@ -109,13 +109,13 @@ gerku> (x) (y) COMB
 |-> ((x) y) 
 ```
 
-## Kerby's combinators
+## Default combinators
 
-By default `gerku` only defines few ad-hoc combinators
-that were useful in the first stage of the project.
+By default `gerku` loads the definitions stored in `grk/default.grk`.
 
-To load the combinators used in Kerby's article just
-start `gerku` with:
+You can load a different definition file using the `-d` flag.
+
+For example if you only want to load the primitive Kerby's combinators.
 
 ```
   prj/gerku/src> ./gerku -d grk/kerby.grk
