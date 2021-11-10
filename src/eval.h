@@ -9,6 +9,7 @@
 #define EVAL_H
 
 #include "libs.h"
+#include "dict.h"
 
 vec_t init_stack();
 vec_t free_stack(vec_t stack);

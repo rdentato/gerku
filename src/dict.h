@@ -18,4 +18,6 @@ int load_defs(char *filename);
 int save_defs(char *filename);
 int del_dict();
 
+#define WORD_DEF "&[A-Za-z_]&*[A-Za-z0-9_-]&?[?!]"
+
 #endif

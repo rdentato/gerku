@@ -65,29 +65,91 @@ static int popterm(vec_t stack)
   return 0;
 }
 
+static int isnum(char *start, int len, int *num)
+{ 
+  int n=0;
+  char *end = start+len;
+  char *tmp;
+  
+  skp("(&*[( ]",start,&tmp);
+  if (errno) return 0;
+
+  start = tmp;
+  skp("zero&*[ )]",start,&tmp);
+  
+  if (errno) skp("&+d&*[ )]",start,&tmp);
+
+  if (errno) return 0;
+
+  n = atoi(start);
+  
+  while ((start = tmp) < end ) {
+    skp("&*ssucc&*s)",start, &tmp);
+    if (errno) return 0;
+    n++;
+  }
+  *num = n;
+  return 1;
+}
+
 static int pushterm(vec_t stack, char *start, int len)
 {
   char *term;
-  
-  term = malloc(len+1);
-  throwif(!term, ENOMEM);
+  int num;
 
-  memcpy(term,start,len);
-  term[len] = '\0';
+  if (isnum(start,len, &num)) {
+    term = malloc(16);
+    throwif(!term, ENOMEM);
+    len = sprintf(term,"(%d)",num);
+  } else {
+    term = malloc(len+1);
+    throwif(!term, ENOMEM);
+    memcpy(term,start,len);
+    term[len] = '\0';
+  }
+
   vecpush(stack,&((term_t){term, len}));
-
   return 0;
 }
-
 
 static char *reduce_word(vec_t stack, char *word)
 {
   char *ret = NULL; 
  _dbgtrc("REDUCE WORD: '%s'",word);
 
-  char **w = search_word(word);
+  int32_t size = 0;
+  char **w;
+
+  if (isdigit(*word)) {
+    int n = atoi(word);
+    size = 6*(n+1) +1;
+
+    ret = malloc(size);
+    throwif(!ret,ENOMEM);
+    
+    char *s;
+    s= ret;
+    for (int i=0; i<n; i++) { 
+      *s++ = '(';
+    }
+
+    strcpy(s,"zero)");
+    s += 5;
+
+    for (int i=0; i<n; i++) {
+      strcpy(s,"succ)");
+      s += 5;
+    }
+
+    s[-1] = '\0'; // remove last ')'
+    popterm(stack);
+
+    return ret;            
+  }
+
+  w = search_word(word);
+
   if (w) {
-    int32_t size = 0;
     term_t *trm;
     int nargs =0;
     char *args;
@@ -119,6 +181,8 @@ static char *reduce_word(vec_t stack, char *word)
    _dbgtrc("size=%d",size);
     if (*s) { // if the body is empty, no need of additional reduce
       ret = malloc(size);
+      throwif(!ret,ENOMEM);
+
       *ret = '\0';
       t = ret;
       int n;
@@ -196,7 +260,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&?[?!]\1&B\2",cur_expr->pos, NULL, &alt);
+      end = skp(WORD_DEF "\1&B\2&+[0-9]\3",cur_expr->pos, NULL, &alt);
       // Only accept '(' as parenthesis (not '[' or '{')!
       if ((alt == '\2') && (*(cur_expr->pos) != '(')) end = NULL;
 

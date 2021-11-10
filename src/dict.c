@@ -8,6 +8,7 @@
 // DICTIONARY ******
 
 #include "libs.h"
+#include "dict.h"
 
 static vec_t dict = NULL;
 
@@ -45,6 +46,7 @@ Will be stored as:
   "X\0\2\2\1\xC@1 @1 Y @2 Z\0"
 
 */
+
 
 int add_word(char *def)
 {
@@ -86,7 +88,7 @@ int add_word(char *def)
   }
 
   name_start = args_end;
-  name_end = skp("&[A-Za-z_]&*[A-Za-z0-9_-]&?[?!]&@&*s=",name_start);
+  name_end = skp(WORD_DEF "&@&*s=",name_start);
   
   if (name_end <= name_start) {
     fprintf(stderr, "Error: Syntax error in definition.\n");
