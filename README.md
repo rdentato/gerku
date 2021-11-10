@@ -71,7 +71,7 @@ The list of REPL commands is accessible within the REPL iteself:
 
 ```
 prj/gerku/src> ./gerku
-GERKU 0.0.5-beta (C) 2021 https://github.com/rdentato/gerku
+GERKU 0.0.6-beta (C) 2021 https://github.com/rdentato/gerku
 Type ! for available commands.
 |-> 
 gerku> !
@@ -97,7 +97,7 @@ Available commands:
 ```
 prj/gerku/src> ./gerku -h
 ./gerku -d
-GERKU 0.0.5-beta (C) 2021 https://github.com/rdentato/gerku
+GERKU 0.0.6-beta (C) 2021 https://github.com/rdentato/gerku
 Type ! for available commands.
 |-> 
 gerku> !def (@) (@) COMB = ((@1) @2)
