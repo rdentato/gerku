@@ -134,7 +134,7 @@ right there can only be the following cases:
 
      3         {@ $..$}[(@)] = (i) sip {$..$}[(@)]
      3a             {@}[(@)] = i
-
+     
 ```
 
   Note that the expressions on the right side can't be reduced further
@@ -204,7 +204,7 @@ list `$..$` is empty:
 
 ### Rule 2
   This rule is to be applied when the expression consist of
-a quote (wich contains `@`) follwed by a list of terms which
+a quote (wich contains `@`) followed by a list of terms which
 may contain `@`.
 
 ```
