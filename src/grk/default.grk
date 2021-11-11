@@ -85,9 +85,6 @@
 !def                (@) (@) sub  = (@1) () (i pred) @2 i
 !def                (@) (@) mult = (zero) (succ) (zero) ((@2) add i) @1 i
 
-!def                (@) (@) leq  = (@2) (@1) sub zero?
-!def                (@) (@) geq  = (@1) (@2) sub zero?
-!def                (@) (@)  eq  = (@1) (@2) leq (@1) (@2) geq and
 
 ## Some Constant
 
@@ -97,7 +94,9 @@
 !def                       four  = (three) succ
 !def                       five  = (four) succ
 
-## Predicate to detect zero
+## Predicates on numbers
 
 !def                   (@) zero? = ((true)) (false!) @1 i
-
+!def                (@) (@) leq? = (@2) (@1) sub zero?
+!def                (@) (@) geq? = (@1) (@2) sub zero?
+!def                (@) (@)  eq? = (@1) (@2) leq (@1) (@2) geq and
