@@ -99,4 +99,4 @@
 !def                   (@) zero? = ((true)) (false!) @1 i
 !def                (@) (@) leq? = (@2) (@1) sub zero?
 !def                (@) (@) geq? = (@1) (@2) sub zero?
-!def                (@) (@)  eq? = (@1) (@2) leq (@1) (@2) geq and
+!def                (@) (@)  eq? = (@1) (@2) leq? (@1) (@2) geq? and
