@@ -42,31 +42,52 @@
 
 # Booleans
 
-!def               (@) (@) true  = (@2)
 !def               (@) (@) false = (@1)
+!def               (@) (@)  true = (@2)
+!def           (@) (@) (@)  ifte = (@1) (@2) @3
                  
 !def                  (@) true!  = (true)
 !def                  (@) false! = (false)
                  
 !def                     (@) not = (true) (false) @1
 !def                 (@) (@) and = (false) (@1) @2
-!def                  (@) (@) or = (@1) (true) @2
+!def                 (@) (@) or  = (@1) (true) @2
 !def                 (@) (@) xor = ((@1)) ((@1) not) @2 i
                  
 !def                (@) (@) nand = ((@1) (@2) and) not i
-!def                (@) (@)  nor = ((@1) (@2) or ) not i
+!def                (@) (@) nor  = ((@1) (@2) or ) not i
 !def                (@) (@) xnor = ((@1) (@2) xor) not i
 
+# Pairs
+
+!def                (@) (@) pair = ((@1) (@2))
+!def                       first = i zap
+!def                      second = i kq
+!def                  (@) (@) kq = (@2)
+        
+# lists
+!def                         nil = ()
 
 # Naturals (quoted Church-like numerals)
 
 !def                    (@) zero =
 !def                    (@) succ = (cons) sip @1
 
+!def                   (@)  pred = ((zero) (zero)) () (i pred_step) @1 i first
+!def                   (@)  pred_pair = ((@1) ((@1) succ))
+!def                   (@)  pred_step = (@1) second pred_pair
+
 ## Operatons on Naturals
 
-!def                (@) (@) add  = (@2) (succ) @1 
-!def                (@) (@) mult = (zero) ((@2) add i) @1
+!def                   (@) tonum = (zero) (succ) @1
+
+!def                (@) (@) add  = (zero) (succ) (@2) (succ) @1 i
+!def                (@) (@) sub  = (@1) () (i pred) @2 i
+!def                (@) (@) mult = (zero) (succ) (zero) ((@2) add i) @1 i
+
+!def                (@) (@) leq  = (@2) (@1) sub zero?
+!def                (@) (@) geq  = (@1) (@2) sub zero?
+!def                (@) (@)  eq  = (@1) (@2) leq (@1) (@2) geq and
 
 ## Some Constant
 
@@ -79,3 +100,4 @@
 ## Predicate to detect zero
 
 !def                   (@) zero? = ((true)) (false!) @1 i
+
