@@ -70,7 +70,7 @@ static int isnum(char *start, int len, int *num)
   int n=0;
   char *end = start+len;
   char *tmp;
-  
+  return 0;
   skp("(&*[( ]",start,&tmp);
   if (errno) return 0;
 
