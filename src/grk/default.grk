@@ -44,7 +44,7 @@
 
 !def               (@) (@) false = (@1)
 !def               (@) (@)  true = (@2)
-!def           (@) (@) (@)  ifte = (@1) (@2) @3
+!def           (@) (@) (@)  ifte = (@2) (@3) @1
                  
 !def                  (@) true!  = (true)
 !def                  (@) false! = (false)
@@ -58,6 +58,7 @@
 !def                (@) (@) nor  = ((@1) (@2) or ) not i
 !def                (@) (@) xnor = ((@1) (@2) xor) not i
 
+
 # Pairs
 
 !def                (@) (@) pair = ((@1) (@2))
@@ -67,6 +68,7 @@
         
 # lists
 !def                         nil = ()
+!def               (@) (@) lcons = (@1) ((@2)) cons
 
 # Naturals (quoted Church-like numerals)
 
@@ -85,7 +87,6 @@
 !def                (@) (@) sub  = (@1) () (i pred) @2 i
 !def                (@) (@) mult = (zero) (succ) (zero) ((@2) add i) @1 i
 
-
 ## Some Constant
 
 !def                       one   = (zero) succ
@@ -100,3 +101,25 @@
 !def                (@) (@) leq? = (@2) (@1) sub zero?
 !def                (@) (@) geq? = (@1) (@2) sub zero?
 !def                (@) (@)  eq? = (@1) (@2) leq? (@1) (@2) geq? and
+
+
+# Y Combinators
+#  \f.(\x.f (x x)) (\x.f (x x))
+
+!def  (@) (@) Y = ((@1) @1 @2) (@1) @1 @2
+
+# Loop
+
+## For
+!def (@) (@) (@) for = ((@1)) (i @2) @3 i
+
+## While
+# Execute F on X while top of stack is not zero
+
+ 
+## factorial
+
+ !def  (@) (@) fact_dup =(@1) (@2) (@1) (@2)
+
+!def  (@) (@) fact_step = (@1) (@2) mult (@2) pred
+!def  (@) fact =  (1) (@1) (fact_step) (@1) for zap
