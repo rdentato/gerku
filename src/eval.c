@@ -70,7 +70,8 @@ static int isnum(char *start, int len, int *num)
   int n=0;
   char *end = start+len;
   char *tmp;
-  return 0;
+  int ret = 0;
+  //return 0;
   skp("(&*[( ]",start,&tmp);
   if (errno) return 0;
 
@@ -86,10 +87,11 @@ static int isnum(char *start, int len, int *num)
   while ((start = tmp) < end ) {
     skp("&*ssucc&*s)",start, &tmp);
     if (errno) return 0;
+    ret=1;
     n++;
   }
   *num = n;
-  return 1;
+  return ret;
 }
 
 static int pushterm(vec_t stack, char *start, int len)
