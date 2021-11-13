@@ -7,6 +7,7 @@
 
 #include "libs.h"
 #include "dict.h"
+#include "eval.h"
 
 typedef struct {
   char *str;
@@ -65,53 +66,62 @@ static int popterm(vec_t stack)
   return 0;
 }
 
-static int isnum(char *start, int len, int *num)
-{ 
-  int n=0;
-  char *end = start+len;
-  char *tmp;
-  int ret = 0;
-  //return 0;
-  skp("(&*[( ]",start,&tmp);
-  if (errno) return 0;
-
-  start = tmp;
-  skp("zero&*[ )]",start,&tmp);
-  
-  if (errno) skp("&+d&*[ )]",start,&tmp);
-
-  if (errno) return 0;
-
-  n = atoi(start);
-  
-  while ((start = tmp) < end ) {
-    skp("&*ssucc&*s)",start, &tmp);
-    if (errno) return 0;
-    ret=1;
-    n++;
-  }
-  *num = n;
-  return ret;
-}
-
 static int pushterm(vec_t stack, char *start, int len)
 {
   char *term;
-  int num;
 
-  if (isnum(start,len, &num)) {
-    term = malloc(16);
-    throwif(!term, ENOMEM);
-    len = sprintf(term,"(%d)",num);
-  } else {
-    term = malloc(len+1);
-    throwif(!term, ENOMEM);
-    memcpy(term,start,len);
-    term[len] = '\0';
-  }
+  term = malloc(len+1);
+  throwif(!term, ENOMEM);
+
+  memcpy(term,start,len);
+  term[len] = '\0';
 
   vecpush(stack,&((term_t){term, len}));
   return 0;
+}
+
+static char *reduce_num(vec_t stack, char *word)
+{
+  char *ret = NULL;
+
+  int32_t size = 0;
+  // Check for args to be quotes
+  term_t *trm1 =vectop(stack,-1);
+  if (!trm1 || trm1->str[0] != '(') return NULL;
+
+  term_t *trm2 =vectop(stack,-2);
+  if (!trm2 || trm2->str[0] != '(') return NULL;
+
+  int n = atoi(word);
+
+  size = n + (trm2->len) + n * (trm1->len-1+1)+4;
+
+  ret = malloc(size);
+  throwif(!ret,ENOMEM);
+    
+  char *s;
+  s = ret;
+  for (int i=0; i<n; i++) { 
+    *s++ = '(';
+  }
+
+  memcpy(s,trm2->str,trm2->len);
+  s += trm2->len;
+
+  for (int i=0; i<n; i++) {
+    *s++ = ' ';
+    memcpy(s,trm1->str+1,trm1->len-1);
+    s += trm1->len-1;
+  }
+
+  *s = '\0'; 
+  throwif(s >= ret+size,ERANGE);
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+
+  return ret;            
 }
 
 static char *reduce_word(vec_t stack, char *word)
@@ -121,33 +131,6 @@ static char *reduce_word(vec_t stack, char *word)
 
   int32_t size = 0;
   char **w;
-
-  if (isdigit(*word)) {
-    int n = atoi(word);
-    size = 6*(n+1) +1;
-
-    ret = malloc(size);
-    throwif(!ret,ENOMEM);
-    
-    char *s;
-    s= ret;
-    for (int i=0; i<n; i++) { 
-      *s++ = '(';
-    }
-
-    strcpy(s,"zero)");
-    s += 5;
-
-    for (int i=0; i<n; i++) {
-      strcpy(s,"succ)");
-      s += 5;
-    }
-
-    s[-1] = '\0'; // remove last ')'
-    popterm(stack);
-
-    return ret;            
-  }
 
   w = search_word(word);
 
@@ -217,10 +200,241 @@ static char *reduce_word(vec_t stack, char *word)
   return ret;
 }
 
+static int is_num(char *start, int len, int *num)
+{ 
+  int n=0;
+  char *end = start+len;
+  char *tmp;
+  int ret = 0;
+
+ _dbgtrc("ISNUM: '%s' ",start);
+  if (*start != '(') return 0;
+
+  skp("&*s&+d",start+1);
+ _dbgtrc("ISNUM: '%s' (err: %d)",start,errno);
+  if (!errno) {
+      n = atoi(start+1);
+      ret=1;
+  }
+  else {
+
+    skp("&+[( ]",start,&tmp);
+  
+   _dbgtrc("ISNUM: '%s' (err: %d)",start,errno);
+    if (errno) return 0;
+  
+    start = tmp;
+    
+    skp("&+d&*[ )]",start,&tmp);
+   _dbgtrc("ISNUM: '%s' (err: %d)",start,errno);
+  
+    if (errno) return 0;
+  
+    n = atoi(start);
+    
+    while ((start = tmp) < end ) {
+      skp("&*s++&*s)",start, &tmp);
+     _dbgtrc("ISNUM: '%s' (err: %d)",start,errno);
+      if (errno) return 0;
+      ret=1;
+      n++;
+    }
+  }
+
+  *num = n;
+  return ret;
+}
+
+static char *reduce_incr(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  int n = -1;
+
+  term_t *trm =vectop(stack,-1);
+  if (!trm) return NULL;
+
+  if (!is_num(trm->str,trm->len,&n))
+      return NULL;
+
+  ret = malloc(16);
+  throwif(!ret,ENOMEM);
+
+  sprintf(ret,"(%d)",n+1);
+  popterm(stack);
+  popterm(stack);
+
+  return ret;
+}
+
+static char *reduce_decr(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  int n=0;
+
+  term_t *trm =vectop(stack,-1);
+  if (!trm) return NULL;
+
+  if (!is_num(trm->str,trm->len,&n))
+      return NULL;
+
+  if (n>0) {
+    ret = malloc(16);
+    throwif(!ret,ENOMEM);
+    sprintf(ret,"(%d)",n-1);
+    popterm(stack);
+  }
+  popterm(stack);
+
+  return ret;
+
+}
+
+static char *reduce_eq_zero(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  int n=0;
+
+  term_t *trm =vectop(stack,-1);
+  if (!trm) return NULL;
+
+  if (!is_num(trm->str,trm->len,&n))
+      return NULL;
+
+  ret = dupstr(n==0?"(true)":"(false)");
+  throwif(!ret,ENOMEM);
+
+  popterm(stack);
+  popterm(stack);
+
+  return ret;
+
+}
+
+static char *reduce_add(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  int n1=0, n2=0;
+
+  term_t *trm1 =vectop(stack,-1);
+  if (!trm1 || !is_num(trm1->str,trm1->len,&n1))
+      return NULL;
+
+  term_t *trm2 =vectop(stack,-2);
+  if (!trm2 || !is_num(trm2->str,trm2->len,&n2))
+      return NULL;
+
+  n2 += n1;
+  
+  ret = malloc(16);
+  throwif(!ret,ENOMEM);
+
+  sprintf(ret,"(%d)",n2);
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+
+  return ret;
+
+}
+
+static char *reduce_sub(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  int n1=0, n2=0;
+
+  term_t *trm1 =vectop(stack,-1);
+  if (!trm1 || !is_num(trm1->str,trm1->len,&n1))
+      return NULL;
+
+  term_t *trm2 =vectop(stack,-2);
+  if (!trm2 || !is_num(trm2->str,trm2->len,&n2))
+      return NULL;
+
+  n2 -= n1;
+  if (n2<0) n2 = 0;
+
+  ret = malloc(16);
+  throwif(!ret,ENOMEM);
+
+  sprintf(ret,"(%d)",n2);
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+
+  return ret;
+
+}
+
+static char *reduce_mult(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  int n1=0, n2=0;
+
+  term_t *trm1 =vectop(stack,-1);
+  if (!trm1 || !is_num(trm1->str,trm1->len,&n1))
+      return NULL;
+
+  term_t *trm2 =vectop(stack,-2);
+  if (!trm2 || !is_num(trm2->str,trm2->len,&n2))
+      return NULL;
+
+  n2 *= n1;
+
+  ret = malloc(16);
+  throwif(!ret,ENOMEM);
+
+  sprintf(ret,"(%d)",n2);
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+
+  return ret;
+}
+
+
+typedef struct {
+  int16_t len;
+  char *word;
+  char *list;
+  char *(*reduce)(vec_t stack, char *word);
+} hardwired_t;
+
+hardwired_t hardwired [] = {
+  {2,"++",   "    (@) ++  = *hardwired*  // increment", reduce_incr},
+  {2,"--",   "    (@) --  = *hardwired*  // decrement", reduce_decr},
+  {3,"=0?",  "    (@) =0? = *hardwired*  // zero?", reduce_eq_zero},
+  {1,"+",    "(@) (@) +   = *hardwired*  // add", reduce_add},
+  {1,"-",    "(@) (@) -   = *hardwired*  // subtract", reduce_sub},
+  {1,"*",    "(@) (@) -   = *hardwired*  // multiply", reduce_mult},
+  {0,NULL, NULL}
+};
+
+void list_hardwired(FILE *out)
+{
+  for (hardwired_t *hw = hardwired; hw->word; hw++) {
+    fprintf(out,"        %s\n",hw->list);
+  }
+}
+
+static char *reduce_hardwired(vec_t stack, char *word)
+{
+  int ishardwired=0;
+  for (hardwired_t *hw = hardwired; hw->word; hw++) {
+    ishardwired =  (strncmp(word, hw->word,hw->len) == 0)
+                && ( word[hw->len] == '\0');
+   _dbgtrc("HW: '%s' '%s' %d",word,hw->word,ishardwired);
+    if (ishardwired) {
+      return hw->reduce(stack,word);
+    }
+  }
+  return NULL;
+}
 
 static char *reduce(vec_t stack)
 {
-  char *ret = NULL;
   term_t *trm;
 
   if (veccount(stack) == 0) return NULL;
@@ -229,9 +443,14 @@ static char *reduce(vec_t stack)
 
   if (trm->str[0] == '(') return NULL;
 
-  ret = reduce_word(stack, trm->str);
+  if (isdigit(trm->str[0]))
+    return reduce_num(stack, trm->str);
 
-  return ret;
+  if (isalpha(trm->str[0]) || trm->str[0] == '_')
+    return reduce_word(stack, trm->str);
+    
+  return reduce_hardwired(stack, trm->str);
+
 }
 
 typedef struct {

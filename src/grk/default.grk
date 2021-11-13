@@ -119,7 +119,8 @@
  
 ## factorial
 
- !def  (@) (@) fact_dup =(@1) (@2) (@1) (@2)
-
 !def  (@) (@) fact_step = (@1) (@2) mult (@2) pred
 !def  (@) fact =  (1) (@1) (fact_step) (@1) for zap
+
+!def  (@) (@) Fact_step = (@1) (@2) * (@2) --
+!def  (@) Fact =  (1) (@1) (Fact_step) (@1) for zap

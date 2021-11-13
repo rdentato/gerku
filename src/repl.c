@@ -23,6 +23,7 @@ static int command(char *ln)
 {
   if (chkcmd("list",ln,4)) {
     list_words(stdout,0);
+    list_hardwired(stdout);
     return 0;
   }
 

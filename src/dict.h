@@ -18,6 +18,6 @@ int load_defs(char *filename);
 int save_defs(char *filename);
 int del_dict();
 
-#define WORD_DEF "&I&?[?!]\1&D\2&+[-+*/%&^|<=>]&?[?!]\3"
+#define WORD_DEF "&D\2&I&?[?!]\1&+[-*/+%&^|#<=>]&*d&?[?!]\3"
 
 #endif

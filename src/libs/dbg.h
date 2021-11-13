@@ -464,8 +464,8 @@ static inline void *dbg_memset(void *dest, int c, size_t size, char *file, int l
 #define strncpy(d,s,n) dbg_strncpy(d,s,n,__FILE__, __LINE__)
 #define strcat(d,s)    dbg_strcat(d,s,__FILE__, __LINE__)
 #define strncat(d,s,n) dbg_strncat(d,s,n,__FILE__, __LINE__)
-#define memcpy(d,s,n)  dbg_memcpy(d,s,n,__FILE__, __LINE__)
-#define memmove(d,s,n) dbg_memmove(d,s,n,__FILE__, __LINE__)
+#define memcpy(d,s,n)  dbg_memcpy(d,(void*)(s),n,__FILE__, __LINE__)
+#define memmove(d,s,n) dbg_memmove(d,(void*)(s),n,__FILE__, __LINE__)
 
 #undef  dbgptr
 #define dbgptr(p) dbgmsg("MCHK: ptr %zX", dbg_ptr2int(p))

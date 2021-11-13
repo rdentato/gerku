@@ -16,5 +16,6 @@ vec_t free_stack(vec_t stack);
 void print_stack(vec_t stack);
 void wipe_stack(vec_t stack);
 int eval(vec_t stack, char *ln, int trace);
+void list_hardwired(FILE *out);
 
 #endif
