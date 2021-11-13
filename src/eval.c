@@ -262,9 +262,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp(WORD_DEF "\1&B\2&+[0-9]\3",cur_expr->pos, NULL, &alt);
-      // Only accept '(' as parenthesis (not '[' or '{')!
-      if ((alt == '\2') && (*(cur_expr->pos) != '(')) end = NULL;
+      end = skp(WORD_DEF "&()",cur_expr->pos, NULL, &alt);
 
       if (end > cur_expr->pos) { //found a term!
        _dbgtrc("PUSH: '%.*s' (%d)",(int)(end-cur_expr->pos),cur_expr->pos,(int)(end-cur_expr->pos));
