@@ -241,7 +241,8 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
   uint32_t match_not = 0;
   int fold = false;
   int iso = false;
-  int intnumber = false;
+  int intnumber  = false;
+  int parenthesis = false;
   char *s_tmp = src;
   
   s_end = src;
@@ -314,6 +315,33 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
                 } 
                 break;
 
+      case '(' : if (*pat != ')') break;
+                 pat++;
+                 parenthesis = true;
+
+      case 'B' : // Balanced parenthesis
+                 {
+                   uint32_t open;
+                   uint32_t close;
+                   int32_t count;
+                   open = s_chr;
+                   close = parenthesis ? ')' : get_close(open);
+                   parenthesis = false;
+                   if (close != '\0') {
+                     count=1;
+                     while (s_chr && count > 0) {
+                       get_next_s_chr();
+                       if (s_chr == open)  count++;
+                       if (s_chr == close) count--;
+                     }
+                     if (count == 0) {
+                       get_next_s_chr();
+                       ret = MATCHED;
+                     }
+                   }
+                 }
+                 break;
+
       case 'X' : // hex number
                 if (   (s_chr == '0')
                     && (s_end[1] == 'x' || s_end[1] == 'X') 
@@ -332,28 +360,6 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
 
       case 'D' : // Integer number 
                 intnumber = true;
-
-      case 'B' : // Balanced parenthesis
-                 {
-                   uint32_t open = s_chr;
-                   uint32_t close;
-                   int32_t count;
-                   open = s_chr;
-                   close = get_close(open);
-                   if (close != '\0') {
-                     count=1;
-                     while (s_chr && count > 0) {
-                       get_next_s_chr();
-                       if (s_chr == open)  count++;
-                       if (s_chr == close) count--;
-                     }
-                     if (count == 0) {
-                       get_next_s_chr();
-                       ret = MATCHED;
-                     }
-                   }
-                 }
-                 break;
 
       case 'F' : // Floating point number
                 if (s_chr == '+' || s_chr == '-') {
