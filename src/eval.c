@@ -408,7 +408,7 @@ hardwired_t hardwired [] = {
   {3,"=0?",  "    (@) =0? = *hardwired*  // zero?", reduce_eq_zero},
   {1,"+",    "(@) (@) +   = *hardwired*  // add", reduce_add},
   {1,"-",    "(@) (@) -   = *hardwired*  // subtract", reduce_sub},
-  {1,"*",    "(@) (@) -   = *hardwired*  // multiply", reduce_mult},
+  {1,"*",    "(@) (@) *   = *hardwired*  // multiply", reduce_mult},
   {0,NULL, NULL}
 };
 
