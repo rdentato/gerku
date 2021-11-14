@@ -6,8 +6,8 @@ variables and then proceeds by abstracting variables from the
 lambda expressions.
 
   This article follows a more direct approach and provides
-abstraction rules that are aimed to ease the implementatocan be 
-directly applied to expressions.
+abstraction rules that are aimed to make the algorithm easier
+to apply and implement.
 
 
 ## Abstraction
@@ -35,7 +35,7 @@ When abstracting multiple variable we'll have:
          {F}[(@1) (@2)] = {{F}[(@1)]}[(@2)]
 ```
 
-Note that we are only interested to show that such algorithm exists
+Note that we are only interested in showing that such algorithm exists
 whether is a practical one or not (abstraction usually leads to very
 long and complex expressions) is a different issue.
 
@@ -97,15 +97,19 @@ expressions having the following grammar:
 
 
  - `@`       is a generic variable
- - `#..#`    is a sequence of terms that *do not* contain `@`
+ - `#..#`    is a sequence of terms that *does not* contain `@`
              (i.e. `@` does not occur in `$...$`)
- - `$..$`    is a sequence of terms that *may* contain `@`
-             (i.e. `@` may occur in `$...$`)
+ - `$..$`    is a sequence of terms that *does* contain `@`
+             (i.e. `@` occurs in `$...$`)
  - `%..%`    is a sequence of terms that *does* contain `@`
              (different from `$...$`)
 
   Given an expressions, looking at the list of terms from left to
 right there can only be the following cases:
+
+  0. The expression can be split in two parts with first terms
+     containing the variable `@` followed by other terms not
+     containing `@`
 
   1. The expression can be split in two parts with first terms
      not containing the variable `@` followed by other terms possibly
@@ -119,13 +123,12 @@ right there can only be the following cases:
   This leads to the following abstraction rules:
 
 ```
-     0      {$..$ #..#}[(@)] = {$..$}[(@)] #..#
+     0      {%..% #..#}[(@)] = {%..%}[(@)] #..#
 
-     1      {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
-     1a        {(#..#)}[(@)] = ((#..#)) k 
-     1b          {#..#}[(@)] = (#..#) k
-     1c            {()}[(@)] = (()) k
-     1d              {}[(@)] = () k
+     1      {#..# %..%}[(@)] = (#..#) dip {%..%}[(@)]
+     1a          {#..#}[(@)] = (#..#) k
+     1b            {()}[(@)] = (()) k
+     1c              {}[(@)] = () k
 
      2    {(%..%) $..$}[(@)] = ({(%..%)}[(@)]) sip {$..$}[(@)]
      2a      {(@) $..$}[(@)] = () sip {$..$}[(@)]
@@ -143,6 +146,8 @@ without being applied to a quote.
 ### Rule 0
   This rule allows us to stop earlier in the abstraction process: trailing
 terms not containing `@` can be left untouched.
+
+  This is implied by the fact that the combinators are concatenative.
 
 ```
      0      {$..$ #..#}[(@)] = {$..$}[(@)] #..#
@@ -177,17 +182,17 @@ that the result is `#..# $..$`.
        (@) {#..# $..$}[(@)]
 ```
 
-  It's easy to verify that rules `1a` to `1d` hold by applying
+  It's easy to verify that rules `1a` to `1c` hold by applying
 them to `(@)` as we did for rule `1`.
 
   It can be also verified that rule `1` is still applicable in 
-those cases and that `1a` to `1d` are just special rules to 
-simplify the algorithm. Let's do it fo `1b` in which the
-list `$..$` is empty:
+those cases and that `1a` to `1c` are just special rules to 
+simplify the algorithm. Let's do it for `1a` by applying the 
+rule `1` and assuming that `$..$` is empty:
 
 ```
-       {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
-       {#..#}[(@)] = (#..#) dip {}[(@)]
+        {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
+        {#..#}[(@)] = (#..#) dip {}[(@)]
 ```
 
   Now let's apply it to `@`:
@@ -205,7 +210,7 @@ list `$..$` is empty:
 ### Rule 2
   This rule is to be applied when the expression consist of
 a quote (wich contains `@`) followed by a list of terms which
-may contain `@`.
+contain `@`.
 
 ```
      2    {(%..%) $..$}[(@)] = ({(%..%)}[(@)]) sip {$..$}[(@)]
