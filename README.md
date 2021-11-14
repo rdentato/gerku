@@ -27,6 +27,8 @@ answer is *NO*!
   `gerku` is now only aimed to be a tool for those wanting to explore
 the concatenative Combinatory Logic described in the Kerby's article.
 
+  Visit the channel on [Discord](https://discord.com/channels/530598289813536771/907982300703236117) to discuss and provide feedback.
+
 ## Compile & Run
 
   Clone (or fork) the repository on [Github](https://github.com/rdentato/gerku).
