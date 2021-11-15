@@ -9,6 +9,7 @@
 
 #include "libs.h"
 #include "dict.h"
+#include "abstract.h"
 
 static vec_t dict = NULL;
 
@@ -66,10 +67,11 @@ int add_word(char *def)
   if (!def || !*def) return 0;
  _dbgtrc("Defining %s",def);
   
+  nargs = 0;
+
   // Will surely be enough;
   dict_str = malloc(strlen(def)+16);
   
-  nargs = 0;
   args_start = skp("&+s",def);
   args_end = args_start;
   while(1) {
@@ -146,6 +148,8 @@ int add_word(char *def)
   dict_str[name_size+1+1+nargs] = (int8_t)body_size;
   memcpy(dict_str+name_size+1+1+nargs+1, body_start,body_size);
   *(dict_str+name_size+1+1+nargs+1+body_size)= '\0';
+
+
 
   char **w = search_word(dict_str);
 
