@@ -242,7 +242,6 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
   int fold = false;
   int iso = false;
   int intnumber  = false;
-  int parenthesis = false;
   char *s_tmp = src;
   
   s_end = src;
@@ -315,9 +314,8 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
                 } 
                 break;
 
-      case '(' : if (*pat != ')') break;
+      case '(' : if (*pat != ')' || s_chr != '(') break;
                  pat++;
-                 parenthesis = true;
 
       case 'B' : // Balanced parenthesis
                  {
@@ -325,8 +323,7 @@ static int match(char *pat, char *src, char **pat_end, char **src_end)
                    uint32_t close;
                    int32_t count;
                    open = s_chr;
-                   close = parenthesis ? ')' : get_close(open);
-                   parenthesis = false;
+                   close = get_close(open);
                    if (close != '\0') {
                      count=1;
                      while (s_chr && count > 0) {

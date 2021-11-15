@@ -59,6 +59,7 @@ typedef union {
 #define vecnew(t) vec_new(sizeof(t))
 vec_t vec_new(int32_t esz);
 vec_t vecfree(vec_t v);
+void *vectoarray(vec_t v);
 
 int   vecdeq(vec_t v);
 void *vecenq(vec_t v, void *e);
@@ -81,7 +82,7 @@ void *vecset(vec_t v,int32_t n,void *e);
 
 void *vec_top(vec_t v, int32_t n);
 
-#define vecdrop(...)  VEC_varargs(vec_drop,__VA_ARGS__)
+#define vecdrop(...)   VEC_varargs(vec_drop,__VA_ARGS__)
 #define vec_drop1(v)   vec_drop(v,1)
 #define vec_drop2(v,n) vec_drop(v,n)
 
@@ -161,13 +162,26 @@ vec_t vec_new(int32_t esz)
 vec_t vecfree(vec_t v)
 {
   if (v) {
-    free(v->vec);
+    if (v->vec) free(v->vec);
     v->vec = NULL;
     v->esz = 0;  v->sze = 0; 
     v->cnt = 0;  v->fst = 0;
     free(v);
   }
   return NULL;
+}
+
+void *vectoarray(vec_t v)
+{
+  void *arr = NULL;
+
+  if (v) {
+    arr = v->vec;
+    v->vec = NULL;
+    vecfree(v);
+  }
+
+  return arr;
 }
 
 static int8_t *get_elm(vec_t v,int32_t n)
@@ -288,7 +302,6 @@ int vecdeq(vec_t v)
 }
 
 // FILE like
-#if 0 // TODO
 
 static int vec_isnot_FILE(vec_t v)
 {
@@ -306,24 +319,24 @@ int32_t vecprintf(vec_t v, char *fmt , ...)
   int32_t max_n;
   
   va_list args;
-
+ 
   int32_t n;
 
   max_n = v->sze - v->fst;
   
-  if ((n < 32) & !(end = get_elm(v,v->fst + 32))) 
+  if ((max_n < 32) && !(end = (char *)get_elm(v,v->fst + 32))) 
     return -1;
 
   while (1) {
     max_n = v->sze - v->fst;
-    if (!(dst = get_elm(v,v->fst))) return -1;
+    if (!(dst = (char *)get_elm(v,v->fst))) return -1;
     va_start(args, fmt);
     n = vsnprintf(dst, max_n, fmt, args);
     va_end(args);
 
     if (n < max_n) break;
 
-    if (!(end = get_elm(v,(v->fst + 2*n)))) return -1;
+    if (!(end = (char *)get_elm(v,(v->fst + 2*n)))) return -1;
   }
 
   v->fst += n;
@@ -346,8 +359,8 @@ int32_t vecwrite(vec_t v, char *s, int32_t n)
   char *end;
   char *dst;
   
-  if (!(end = get_elm(v,v->fst+n))) return -1;
-  if (!(dst = get_elm(v,v->fst))) return -1;
+  if (!(end = (char *)get_elm(v,v->fst+n))) return -1;
+  if (!(dst = (char *)get_elm(v,v->fst))) return -1;
   memcpy(dst,s,n);
   v->fst += n; 
   if (v->fst >= v->cnt) v->cnt = v->fst;
@@ -363,17 +376,16 @@ int32_t vecfread(vec_t v, int32_t len, FILE *f)
 int32_t vecseek(vec_t v, int32_t pos)
 {
   if (vec_isnot_FILE(v)) return -1;
-
   return v->fst;
 }
 
 int32_t vecpos(vec_t v)
 {
   if (vec_isnot_FILE(v)) return -1;
-
   return v->fst;
 }
 
+#if 0 // TODO
 // Mapping (hashtable)
 int vec_isnot_MAP(vec_t v)
 {
