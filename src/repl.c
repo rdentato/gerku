@@ -9,6 +9,7 @@
 #include "libs.h"
 #include "dict.h"
 #include "eval.h"
+#include "abstract.h"
 
 
 #define QUIT 255
@@ -16,7 +17,6 @@
 
 static int trace = 0;
 static int wipe = 1;
-
 
 #define chkcmd(s,l,n) ((strncmp(s,l,n) == 0) && ((l[n] == '\0') || isspace(l[n])))
 static int command(char *ln)
@@ -38,7 +38,25 @@ static int command(char *ln)
   }
 
   if (chkcmd("def",ln,3)) {
-    return add_word(ln+3);
+    char *s;
+    skp("&*s[]&*[ (@)]",ln+3,&s);
+    if (errno) return add_word(ln+3);
+    char *n;
+    skp("&+!s&@&*s=&*s",s,&n);
+    if (errno) {
+      fprintf(stderr,"Missing word name\n");
+      return 0;
+    }
+    int l;
+    l = n-s;
+    skp("&*s=&*s",n,&n);
+   _dbgtrc("DEF ABST: %.*s = %s",l,s,n);
+    char *a; 
+    a = abstract(n,0,s,l);
+   _dbgtrc("    ABST: %s",a);
+    add_word(a);
+    free(a);
+    return 0;
   }
 
   if (chkcmd("del",ln,3)) {
@@ -56,6 +74,14 @@ static int command(char *ln)
       fprintf(stderr,"Wipe is %s\n",&("OFF\0ON"[(wipe*4)]));
     }
     return WIPE;
+  }
+
+  if (chkcmd("abstract",ln,8)) {
+    char *a;
+    skp("&+s",ln+8,&ln);
+    a = abstract(ln);
+    free(a);
+    return 0;
   }
 
   if (chkcmd("load",ln,4)) {
