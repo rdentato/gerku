@@ -7,7 +7,7 @@
 
 #include "gerku.h"
 
-char *gerku_version="GERKU 0.0.6-beta (C) 2021 https://github.com/rdentato/gerku";
+char *gerku_version="GERKU 0.0.7-beta (C) 2021 https://github.com/rdentato/gerku";
 
 int main(int argc, char *argv[])
 {
