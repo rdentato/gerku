@@ -256,7 +256,7 @@ static char *reduce_incr(vec_t stack, char *word)
   if (!is_num(trm->str,trm->len,&n))
       return NULL;
 
-  ret = malloc(16);
+  ret = malloc(20);
   throwif(!ret,ENOMEM);
 
   sprintf(ret,"(%d)",n+1);
@@ -278,7 +278,7 @@ static char *reduce_decr(vec_t stack, char *word)
       return NULL;
 
   if (n>0) {
-    ret = malloc(16);
+    ret = malloc(20);
     throwif(!ret,ENOMEM);
     sprintf(ret,"(%d)",n-1);
     popterm(stack);
@@ -325,7 +325,7 @@ static char *reduce_add(vec_t stack, char *word)
 
   n2 += n1;
   
-  ret = malloc(16);
+  ret = malloc(20);
   throwif(!ret,ENOMEM);
 
   sprintf(ret,"(%d)",n2);
@@ -354,7 +354,7 @@ static char *reduce_sub(vec_t stack, char *word)
   n2 -= n1;
   if (n2<0) n2 = 0;
 
-  ret = malloc(16);
+  ret = malloc(20);
   throwif(!ret,ENOMEM);
 
   sprintf(ret,"(%d)",n2);
@@ -382,7 +382,7 @@ static char *reduce_mult(vec_t stack, char *word)
 
   n2 *= n1;
 
-  ret = malloc(16);
+  ret = malloc(20);
   throwif(!ret,ENOMEM);
 
   sprintf(ret,"(%d)",n2);
@@ -464,7 +464,6 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
   expr_t *cur_expr;
   char *new_expr;
   int prev_depth;
-  int alt;
 
   // Evaluate all the expressions in the stack;
   while (veccount(expressions) > 0) {
@@ -481,7 +480,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp(WORD_DEF "&()",cur_expr->pos, NULL, &alt);
+      end = skp(WORD_DEF "&()",cur_expr->pos);
 
       if (end > cur_expr->pos) { //found a term!
        _dbgtrc("PUSH: '%.*s' (%d)",(int)(end-cur_expr->pos),cur_expr->pos,(int)(end-cur_expr->pos));
@@ -501,6 +500,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
         if (new_expr) {
           vecpush(expressions,&((expr_t){new_expr, new_expr}));
          _dbgtrc("PUSHED: %s (%d)",new_expr,veccount(expressions));
+         break;
         }
         else {
           if (trace && (veccount(stack) != prev_depth))
