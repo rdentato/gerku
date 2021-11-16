@@ -1,4 +1,4 @@
-# Abstraction algorithm
+# Concatenative Combinators abstraction algorithm
 
   In [1], Kerby discuss *abstraction* by converting expressions
 containg concatenative combinators to lambda expressions with 
@@ -12,30 +12,31 @@ to apply and implement.
 
 ## Abstraction
  
+  The *abstraction* of an expression `F` with respect to the
+variable `@` is denoted with `{F}[(@)]`.
   The result of the *abstraction* of the variable `@` from the
 expression `F` is an expression `G` that does not contain `@`
-and that, when applied to `(@)` will return `F`:
+and that, when applied to `(@)`. will return `F`:
 
 ```
            G = {F}[(@)]  ->  (@) G = F
 ```
 
-The *abstraction* of an expression `F` with respect to the
-variable `@` is denoted with `{F}[(@)]`.
-
-In a sense, abstraction is similar to compilation. Given
+  In a sense, abstraction is similar to compilation. Given
 an expression `F` containing variables (the *source code*)
 we can see `{F}[(@)]` as a program that when applied to a
 term `(x)` will result in the original expression where the
 variable is replaced by `(x)`.
 
-When abstracting multiple variable we'll have:
+  When abstracting multiple variable we'll have:
 
 ```
          {F}[(@1) (@2)] = {{F}[(@1)]}[(@2)]
 ```
 
-Note that we are only interested in showing that such algorithm exists
+  In other words, we first abstract wrt `@1`, then `@2` and so on.
+
+  Note that we are only interested in showing that such algorithm exists
 whether is a practical one or not (abstraction usually leads to very
 long and complex expressions) is a different issue.
 
@@ -78,7 +79,7 @@ leftmost term of the expression) and as a rewrite rule.
 
 ## Abstraction rules
   To find an algorithm we'll reason on the structure of
-expressions having the following grammar:
+expressions that have the following grammar:
 
 ```
    expression := term+
@@ -114,11 +115,12 @@ right there can only be the following cases:
      containing `@`
 
   1. The expression can be split in two parts with first terms
-     not containing the variable `@` followed by other terms possibly
+     not containing the variable `@` followed by other terms
      containing `@`
      
-  2. The first term is a quote containing `@` (otherwise we would be
-     in case 1) followed by other terms possibly containing `@`
+  2. The first term is a quote containing `@` (otherwise it 
+     we would accounted for in case 1) followed by other terms
+     possibly containing `@`
 
   3. The fist term is the variable `@`
 
@@ -144,6 +146,13 @@ right there can only be the following cases:
   Note that the expressions on the right side can't be reduced further
 without being applied to a quote.
 
+  It's easy to prove, by induction on the length of the expressions,
+that the algorithm converges: at each step the expressions to be
+abstracted become smaller and smaller.
+
+  In the following subsection we'll show that rules do hold by applying
+them to `(@)` and checking that the result is, indeed, the original expression.
+
 ### Rule 0
   This rule allows us to stop earlier in the abstraction process: trailing
 terms not containing `@` can be left untouched.
@@ -157,14 +166,16 @@ terms not containing `@` can be left untouched.
   Let's check that rule `0` holds:
 ```
      (@) {$..$}[(@)] #..#
-     ^-------------^  by definition of abstraction
+     ^-------------^        by definition of abstraction
      $..$ #..#
+     ^-------^              by definition of abstraction
+     {$..$ #..#}[(@)]
 ```
 
 ### Rule 1
   This rule is to be applied when the expression consists of a list
 of terms which do not contain `@` followed by a list of terms which
-may contain `@`.
+contain `@`.
 
 ```
      1      {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
@@ -183,35 +194,45 @@ that the result is `#..# $..$`.
        (@) {#..# $..$}[(@)]
 ```
 
-  It's easy to verify that rules `1a` to `1c` hold by applying
-them to `(@)` as we did for rule `1`.
+  Rule 1 works even if one or both the lists of terms
+`#..#` and `$..$` are empty:
 
-  It can be also verified that rule `1` is still applicable in 
-those cases and that `1a` to `1c` are just special rules to 
-simplify the algorithm. Let's do it for `1a` by applying the 
-rule `1` and assuming that `$..$` is empty:
-
+    - `#..#` is empty:
 ```
-        {#..# $..$}[(@)] = (#..#) dip {$..$}[(@)]
-        {#..#}[(@)] = (#..#) dip {}[(@)]
+       (@) () dip {$..$}[(@)]
+       ^--------^                by def. of dip
+       (@) {$..$}[(@)]
+       ^-------------^           by def of abstraction
 ```
 
-  Now let's apply it to `@`:
-
+    - `$..$` is empty:
 ```
        (@) (#..#) dip {}[(@)]
-       ^------------^             by def. of dip
+       ^-------------^            by def. of dip
        #..# (@) {}[(@)]
-            ^---------^           by def. of abstraction
+            ^---------^           by def of abstraction
        #..#
+       ^--^                       by def of abstraction
+       (@) {#..#}[(@)]
 ```
 
-  The other cases can be verified in a similar way.
+    - both `#..#` and `$..$` are empty: 
+```
+       (@) () dip {}[(@)]
+       ^-------------^            by def. of dip
+       (@) {}[(@)]
+       ^---------^                by def of abstraction
+                                  <-- empty expression
+```
+
+  Rules `1a` and `1b` just simplify the expression by using 
+the `zap` combinator.
+
 
 ### Rule 2
   This rule is to be applied when the expression consist of
-a quote (wich contains `@`) followed by a list of terms which
-contain `@`.
+a quote that contains `@` followed by a list of terms which
+contain `@` (if they didn't we would have used rule 0).
 
 ```
      2    {(%..%) $..$}[(@)] = ({(%..%)}[(@)]) sip {$..$}[(@)]
@@ -227,6 +248,8 @@ contain `@`.
        (%..%) (@) {$..$}[(@)]
               ^-------------^                 by def. of abstraction
        (%..%) $..$
+       ^---------^                            by def. of abstraction
+       (@) {(%..%) $..$}[(@)]
 ```
 
   Rules `2a` to `2d` are special cases of rule `2`.
@@ -237,19 +260,19 @@ contain `@`.
    This is the rule to apply when the first term is `@`.
 
 ```
-     3         {@ $..$}[(@)] = (i) sip {$..$}[(@)]
+     3         {@ $..$}[(@)] = run {$..$}[(@)]
 ```
 
    To show that rules 3 holds, let's apply it to `(@)`:
 
 ```
-               (@) (i) sip {$..$}[(@)]
-               ^---------^
-               (@) i (@) {$..$}[(@)]
-               ^---^
+               (@) run {$..$}[(@)]
+               ^-----^                by def. of run
                @ (@) {$..$}[(@)]
-                 ^-------------^
+                 ^-------------^      by def. of abstraction
                @ $..$
+               ^----^                 by def. of abstraction
+               (@) {@ $..$}[(@)]
 ```
 
 
