@@ -1,92 +1,88 @@
-# Base combinators from the article:
+# Combinators from the article:
 #     "The Theory of Concatenative Combinators"
 #     by Brent Kerby
 
-!def                    (@) zap  =
-!def                    (@) i    = @1
-!def                    (@) unit = ((@1))
-!def                    (@) rep  = @1 @1
-!def                    (@) m    = (@1) @1
-!def                    (@) run  = @1 (@1)
-!def                    (@) dup  = (@1) (@1)
-!def                (@) (@) k    = @2
-!def                (@) (@) z    = @1
-!def                (@) (@) nip  = (@2)
-!def                (@) (@) sap  = @2 @1
-!def                (@) (@) t    = (@2) @1
-!def                (@) (@) dip  = @2 (@1)
-!def                (@) (@) cat  = (@1 @2)
-!def                (@) (@) swat = (@2 @1)
-!def                (@) (@) swap = (@2) (@1)
-!def                (@) (@) cons = ((@1) @2)
-!def                (@) (@) cosp = ((@1) @2) (@1)
-!def                (@) (@) take = (@2 (@1))
-!def                (@) (@) tack = (@1 (@2))
-!def                (@) (@) sip  = (@1) @2 (@1)
-!def                (@) (@) w    = (@1) (@1) @2
-!def                (@) (@) peek = (@1) (@2) (@1)
-!def                (@) (@) cake = ((@1) @2) (@2 (@1))
-!def            (@) (@) (@) poke = (@3) (@2)
-!def            (@) (@) (@) b    = ((@1) @2) @3
-!def            (@) (@) (@) c    = (@2) (@1) @3
-!def            (@) (@) (@) dig  = (@2) (@3) (@1)
-!def            (@) (@) (@) bury = (@3) (@1) (@2)
-!def            (@) (@) (@) flip = (@3) (@2) (@1)
-!def            (@) (@) (@) s    = ((@1) @2) (@1) @3
-!def        (@) (@) (@) (@) s1   = ((@1) @2) @4 (@1) @3
-!def        (@) (@) (@) (@) j    = ((@2) (@1) @4) (@3) @4
-!def    (@) (@) (@) (@) (@) j1   = ((@2) @5 (@1) @4) (@3) @4
-
-# This is a "combinator" that create a quote out of an atom
-# Note that this it's outside the theory described in the article
-!def                         @ q = (@1)
+!def  zap/1  =
+!def  i      = @1
+!def  unit   = ((@1))
+!def  rep    = @1 @1
+!def  m      = (@1) @1
+!def  run    = @1 (@1)
+!def  dup    = (@1) (@1)
+!def  k      = @2
+!def  z/2    = @1
+!def  nip    = (@2)
+!def  sap    = @2 @1
+!def  t      = (@2) @1
+!def  dip    = @2 (@1)
+!def  cat    = (@1 @2)
+!def  swat   = (@2 @1)
+!def  swap   = (@2) (@1)
+!def  cons   = ((@1) @2)
+!def  cosp   = ((@1) @2) (@1)
+!def  take   = (@2 (@1))
+!def  tack   = (@1 (@2))
+!def  sip    = (@1) @2 (@1)
+!def  w      = (@1) (@1) @2
+!def  peek   = (@1) (@2) (@1)
+!def  cake   = ((@1) @2) (@2 (@1))
+!def  poke   = (@3) (@2)
+!def  b      = ((@1) @2) @3
+!def  c      = (@2) (@1) @3
+!def  dig    = (@2) (@3) (@1)
+!def  bury   = (@3) (@1) (@2)
+!def  flip   = (@3) (@2) (@1)
+!def  s      = ((@1) @2) (@1) @3
+!def  s1     = ((@1) @2) @4 (@1) @3
+!def  j      = ((@2) (@1) @4) (@3) @4
+!def  j1     = ((@2) @5 (@1) @4) (@3) @4
 
 # Booleans
 
-!def               (@) (@) false = (@1)
-!def               (@) (@)  true = (@2)
-!def           (@) (@) (@)  ifte = (@2) (@3) @1
+!def             false/2 = (@1)
+!def             true    = (@2)
+!def             ifte    = (@2) (@3) @1
                  
-!def                  (@) true!  = (true)
-!def                  (@) false! = (false)
+!def            true!/1  = (true)
+!def            false!/1 = (false)
                  
-!def                     (@) not = (true) (false) @1
-!def                 (@) (@) and = (false) (@1) @2
-!def                 (@) (@) or  = (@1) (true) @2
-!def                 (@) (@) xor = ((@1)) ((@1) not) @2 i
+!def                 not = (true) (false) @1
+!def                 and = (false) (@1) @2
+!def                 or  = (@1) (true) @2
+!def                 xor = ((@1)) ((@1) not) @2 i
                  
-!def                (@) (@) nand = ((@1) (@2) and) not i
-!def                (@) (@) nor  = ((@1) (@2) or ) not i
-!def                (@) (@) xnor = ((@1) (@2) xor) not i
+!def                nand = ((@1) (@2) and) not i
+!def                nor  = ((@1) (@2) or ) not i
+!def                xnor = ((@1) (@2) xor) not i
 
 
 # Pairs
 
-!def                (@) (@) pair = ((@1) (@2))
+!def                        pair = ((@1) (@2))
 !def                       first = i zap
 !def                      second = i kq
-!def                  (@) (@) kq = (@2)
+!def                          kq = (@2)
         
 # lists
 !def                         nil = ()
-!def               (@) (@) lcons = (@1) ((@2)) cons
+!def                       lcons = (@1) ((@2)) cons
 
 # Naturals (quoted Church-like numerals)
 
-!def                    (@) zero =
-!def                    (@) succ = (cons) sip @1
+!def                    zero/1 =
+!def                    succ   = (cons) sip @1
 
-!def                   (@)  pred = ((zero) (zero)) () (i pred_step) @1 i first
-!def                   (@)  pred_pair = ((@1) ((@1) succ))
-!def                   (@)  pred_step = (@1) second pred_pair
+!def                        pred = ((zero) (zero)) () (i pred_step) @1 i first
+!def                   pred_pair = ((@1) ((@1) succ))
+!def                   pred_step = (@1) second pred_pair
 
-## Operatons on Naturals
+## Operations on Naturals
 
-!def                   (@) tonum = (zero) (succ) @1
+!def                   tonum = (1) (++) (@1)  for
 
-!def                (@) (@) add  = (zero) (succ) (@2) (succ) @1 i
-!def                (@) (@) sub  = (@1) () (i pred) @2 i
-!def                (@) (@) mult = (zero) (succ) (zero) ((@2) add i) @1 i
+!def                    add  = (zero) (succ) (@2) (succ) @1 i
+!def                    sub  = (@1) () (i pred) @2 i
+!def                    mult = (zero) (succ) (zero) ((@2) add i) @1 i
 
 ## Some Constant
 
@@ -98,21 +94,20 @@
 
 ## Predicates on numbers
 
-!def                   (@) zero? = ((true)) (false!) @1 i
-!def                (@) (@) leq? = (@2) (@1) sub zero?
-!def                (@) (@) geq? = (@1) (@2) sub zero?
-!def                (@) (@)  eq? = (@1) (@2) leq? (@1) (@2) geq? and
+!def                       zero? = ((true)) (false!) @1 i
+!def                        leq? = (@2) (@1) sub zero?
+!def                        geq? = (@1) (@2) sub zero?
+!def                         eq? = (@1) (@2) leq? (@1) (@2) geq? and
 
 
 # Y Combinators
 #  \f.(\x.f (x x)) (\x.f (x x))
 
-!def  (@) (@) Y = ((@1) @1 @2) (@1) @1 @2
 
 # Loop
 
 ## For
-!def (@) (@) (@) for = ((@1)) (i @2) @3 i
+!def   for = ((@1)) (i @2) @3 i
 
 ## While
 # Execute F on X while top of stack is not zero
@@ -120,8 +115,9 @@
  
 ## factorial
 
-!def  (@) (@) fact_step = (@1) (@2) mult (@2) pred
-!def  (@) fact =  (1) (@1) (fact_step) (@1) for zap
+!def    fact_step = (@1) (@2) mult (@2) pred
+!def         fact =  (1) (@1) (fact_step) (@1) for zap
 
-!def  (@) (@) Fact_step = (@1) (@2) * (@2) --
-!def  (@) Fact =  (1) (@1) (Fact_step) (@1) for zap
+# With hardwired numbers and operations
+!def    Fact_step = (@1) (@2) * (@2) --
+!def         Fact = (1) (@1) (Fact_step) (@1) for zap

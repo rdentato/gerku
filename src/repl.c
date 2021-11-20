@@ -38,25 +38,8 @@ static int command(char *ln)
   }
 
   if (chkcmd("def",ln,3)) {
-    char *s;
-    skp("&*s[]&*[ (@)]",ln+3,&s);
-    if (errno) return add_word(ln+3);
-    char *n;
-    skp("&+!s&@&*s=&*s",s,&n);
-    if (errno) {
-      fprintf(stderr,"Missing word name\n");
-      return 0;
-    }
-    int l;
-    l = n-s;
-    skp("&*s=&*s",n,&n);
-   _dbgtrc("DEF ABST: %.*s = %s",l,s,n);
-    char *a; 
-    a = abstract(n,0,s,l);
-   _dbgtrc("    ABST: %s",a);
-    add_word(a);
-    free(a);
-    return 0;
+  
+    return add_word(ln+3);
   }
 
   if (chkcmd("del",ln,3)) {

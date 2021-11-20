@@ -28,12 +28,13 @@ int main(int argc, char *argv[])
         start_repl = 0;
       }
 
-      vrgopt("-d default", "Replace default combinators") {
+      vrgopt("-d [default]", "Replace default combinators") {
         default_grk = vrgoptarg;
       }
     }
   
-    init_dict(default_grk);
+    if (default_grk)  init_dict(default_grk);
+
     stack = init_stack();
 
     //load files

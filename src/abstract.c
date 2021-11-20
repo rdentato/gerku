@@ -195,7 +195,7 @@ static void abstract_var(int var, char *expr, vec_t buf) // var must be '1' for 
 
 }
 
-char *abstract_expr(char *expr, int var, char *word, int len)
+char *abstract_expr(char *expr, int var, char *name, int namelen)
 {
   char *ret = NULL;
   vec_t buf = NULL;
@@ -203,15 +203,17 @@ char *abstract_expr(char *expr, int var, char *word, int len)
   
   char *dup_expr;
 
-  from = var;
-  to = var;
-
-  if (var == 0) {
-    from = '1'; to ='0';
+  if (var <= 0) {
+    var = -var;
+    from = '1'; to ='0'+var;
     for( char *s=expr; *s ; s++) {
       if (*s == '@' && isdigit(s[1]) && s[1]>to)
         to = s[1];
     }
+  }
+  else {
+    from = var;
+    to = var;
   }
 
   dup_expr = dupstr(expr);
@@ -228,19 +230,20 @@ char *abstract_expr(char *expr, int var, char *word, int len)
 
   throwif(!dup_expr,EINVAL);
 
-  dbgtrc("ABST: pre-word: %s",dup_expr);
-  if (word) {
-     int abslen = strlen(dup_expr);
+  char *s = dup_expr;
+  while (*s) s++;
+  while (s > dup_expr && isspace(s[-1])) *--s = '\0';
+
+ _dbgtrc("ABST: pre-name: '%s'",dup_expr);
+  if (name) {
      buf = vecnew(char);
-     vecprintf(buf,"%.*s___%s",len,word,dup_expr);
-     dbgtrc("VLN: %d",veccount(buf));
+     vecprintf(buf,"%.*s_%s",namelen,name,dup_expr);
+    _dbgtrc("VLN: %d",veccount(buf));
      dup_expr = (char *) vectoarray(buf);
-     dup_expr[len] = '\0';
-     dup_expr[len+1] = '\0';
-     dup_expr[len+2] = (uint8_t) abslen;
+     dup_expr[namelen] = '\0';
   }
   
-  printf("     > !def %s = %s\n",dup_expr, dup_expr+len+3);
+  // printf("     > !def %s = %s\n",dup_expr, dup_expr+namelen+1);
 
   ret = dup_expr;
   return ret;

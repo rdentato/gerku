@@ -77,123 +77,24 @@ int pushterm(vec_t stack, char *start, int len)
   return 0;
 }
 
-static char *reduce_num(vec_t stack, char *word)
-{
-  char *ret = NULL;
-
-  int32_t size = 0;
-  // Check for args to be quotes
-  term_t *trm1 =vectop(stack,-1);
-  if (!trm1 || trm1->str[0] != '(') return NULL;
-
-  term_t *trm2 =vectop(stack,-2);
-  if (!trm2 || trm2->str[0] != '(') return NULL;
-
-  int n = atoi(word);
-
-  size = n + (trm2->len) + n * (trm1->len-1+1)+4;
-
-  ret = malloc(size);
-  throwif(!ret,ENOMEM);
-    
-  char *s;
-  s = ret;
-  for (int i=0; i<n; i++) { 
-    *s++ = '(';
-  }
-
-  memcpy(s,trm2->str,trm2->len);
-  s += trm2->len;
-
-  for (int i=0; i<n; i++) {
-    *s++ = ' ';
-    memcpy(s,trm1->str+1,trm1->len-1);
-    s += trm1->len-1;
-  }
-
-  *s = '\0'; 
-  throwif(s >= ret+size,ERANGE);
-
-  popterm(stack);
-  popterm(stack);
-  popterm(stack);
-
-  return ret;            
-}
 
 static char *reduce_word(vec_t stack, char *word)
 {
   char *ret = NULL; 
+  char *s;
  _dbgtrc("REDUCE WORD: '%s'",word);
 
-  int32_t size = 0;
   char **w;
 
   w = search_word(word);
 
   if (w) {
-    term_t *trm;
-    int nargs =0;
-    char *args;
-    char *s = *w;
-    char *t;
-    // check arguments
-    while(*s) s++;
+    s = skp("&*.",*w);
     s++;
-    nargs = *s++;
-    args = s;
-
-    // Check for enough arguments
-    if (veccount(stack) <= nargs) return NULL;
-    
-    size = 2*nargs+16;
-    trm = vectop(stack); // word
-    term_t *trm1 = trm - nargs;
-    // Check args type (quote/term)
-    for (int k=0; k< nargs; k++, s++, trm1++) {
-      
-      if ((*s & 0x80) && (trm1->str[0] != '('))
-        return NULL;
-
-      size += trm1->len * (*s & 0x7F);
-    }
-
-    // Build expressions
-    size += *s++;
-   _dbgtrc("size=%d",size);
-    if (*s) { // if the body is empty, no need of additional reduce
-      ret = malloc(size);
-      throwif(!ret,ENOMEM);
-
-      *ret = '\0';
-      t = ret;
-      int n;
-      int l;
-      while (*s) {
-        if (*s == '@') {
-          n = (atoi(++s)-1);
-          l = (args[n] & 0x80 )? 1 : 0;
-          n = -nargs + n;
-          while (isdigit(*s)) s++;
-          s--;
-  
-          memcpy(t,trm[n].str+l ,trm[n].len - (2*l));
-  
-          t += trm[n].len - (2*l);
-  
-          //*t++ =' ';
-        }
-        else *t++ = *s;
-        *t = '\0';
-        s++;
-      }
-    }
-   _dbgtrc("expr: '%s'",ret);
-    // pop
-    for (int k=0; k<=nargs; k++)
-      popterm(stack);
+   _dbgtrc("WORD: '%s' '%s'",*w,s);
+    if (*s) ret = dupstr(s);
+    popterm(stack);
   }
-
   return ret;
 }
 
@@ -400,12 +301,12 @@ typedef struct {
 } hardwired_t;
 
 hardwired_t hardwired [] = {
-  {2,"++",   "    (@) ++  = *hardwired*  // increment", reduce_incr},
-  {2,"--",   "    (@) --  = *hardwired*  // decrement", reduce_decr},
-  {3,"=0?",  "    (@) =0? = *hardwired*  // zero?", reduce_eq_zero},
-  {1,"+",    "(@) (@) +   = *hardwired*  // add", reduce_add},
-  {1,"-",    "(@) (@) -   = *hardwired*  // subtract", reduce_sub},
-  {1,"*",    "(@) (@) *   = *hardwired*  // multiply", reduce_mult},
+  {2,"++",   "++  = *hardwired*  // increment", reduce_incr},
+  {2,"--",   "--  = *hardwired*  // decrement", reduce_decr},
+  {3,"=0?",  "=0? = *hardwired*  // zero?", reduce_eq_zero},
+  {1,"+",    "+   = *hardwired*  // add", reduce_add},
+  {1,"-",    "-   = *hardwired*  // subtract", reduce_sub},
+  {1,"*",    "*   = *hardwired*  // multiply", reduce_mult},
   {0,NULL, NULL}
 };
 
@@ -440,11 +341,9 @@ static char *reduce(vec_t stack)
 
   if (trm->str[0] == '(') return NULL;
 
-  if (trm->str[0] == '$') return hw_reduce(stack, trm->str);
+  if (trm->str[0] == '$') return hw_combinator(stack, trm->str);
 
-  if (isdigit(trm->str[0]))
-    return reduce_num(stack, trm->str);
-
+  if (isdigit(trm->str[0])) return hw_numeral(stack, trm->str);
 
   if (isalpha(trm->str[0]) || trm->str[0] == '_')
     return reduce_word(stack, trm->str);
