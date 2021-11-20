@@ -52,7 +52,7 @@ int def_word(char *name, char *body)
   
   if (body_end>body_start && body_end[-1] == ')') body_end--;
 
-  dbgtrc("[%.*s] '%.*s'",(int)(name_end - name_start),name_start,(int)(body_end - body_start),body_start);
+  _dbgtrc("[%.*s] '%.*s'",(int)(name_end - name_start),name_start,(int)(body_end - body_start),body_start);
   if (name_end <= name_start || body_end <= body_start) {
     fprintf(stderr, "Error: Syntax error in definition.\n");
     fprintf(stderr, "%s\n",body_start);
