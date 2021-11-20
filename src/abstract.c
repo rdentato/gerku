@@ -1,3 +1,9 @@
+/* 
+**  (C) by Remo Dentato (rdentato@gmail.com)
+**
+** This software is distributed under the terms of the MIT license:
+**  https://opensource.org/licenses/MIT
+*/
 
 #include <stdio.h>
 #include "libs.h"
@@ -121,30 +127,30 @@ static void abstract_var(int var, char *expr, vec_t buf) // var must be '1' for 
 
    switch (rule) {
      //  1 {}[(@)] = zap
-     case 1 : vecprintf(buf,"zap ");
+     case 1 : vecprintf(buf,"$z ");
          break;
      //  2 {#..#}[(@)] = zap #..#
-     case 2 : vecprintf(buf,"zap %s", expr);
+     case 2 : vecprintf(buf,"$z %s", expr);
          break;
 
      //  3 {#..# %..%}[(@)] = (#..#) dip {%..%}[(@)]
      case 3 : s = frst;
               while (s>expr && isspace(s[-1])) s--;
-              vecprintf(buf,"(%.*s) dip ", ((int)(s-expr)),expr);
+              vecprintf(buf,"(%.*s) $D ", ((int)(s-expr)),expr);
               abstract_var(var,frst,buf);
          break;
      //  4 {@}[(@)] = i
-     case 4:  vecprintf(buf,"i ");
+     case 4:  vecprintf(buf,"$i ");
          break;
 
      //  5 {@ $..$}[(@)] = run {$..$}[(@)]
-     case 5:  vecprintf(buf,"run ");
+     case 5:  vecprintf(buf,"$r ");
               skp("@&d&*s",frst,&frst);
               abstract_var(var,frst,buf);
          break;
          
      //  6 {@ #..#}[(@)] = i #..#
-     case 6:  vecprintf(buf,"i %s ", expr+2);
+     case 6:  vecprintf(buf,"$i %s ", expr+2);
          break;
 
      //  7 {(@)}[(@)] = 
@@ -152,7 +158,7 @@ static void abstract_var(int var, char *expr, vec_t buf) // var must be '1' for 
          break;
 
      //  8 {(@) $..$}[(@)] = dup {$..$}[(@)]
-     case 8:  vecprintf(buf,"dup ");
+     case 8:  vecprintf(buf,"$d ");
               skp("&()&*s",frst,&frst);
               abstract_var(var,frst,buf);
          break;
@@ -171,17 +177,17 @@ static void abstract_var(int var, char *expr, vec_t buf) // var must be '1' for 
               skp("&+s",s,&s);
               vecprintf(buf,"(");
               abstract_var(var,frst+1,buf);
-              vecprintf(buf,") cons %s ",s);
+              vecprintf(buf,") $c %s ",s);
          break;
 
-  // 11  {(%..%) $..$}[(@)] = (({%..%}[(@)]) cons) sip {$..$}[(@)]
+  // 11  {(%..%) $..$}[(@)] = ({%..%}[(@)]) cosp {$..$}[(@)]
      case 11: 
               skp("&()",frst,&s);
               if (s>frst) s[-1] = '\0';
               skp("&+s",s,&s);
-              vecprintf(buf,"((");
+              vecprintf(buf,"(");
               abstract_var(var,frst+1,buf);
-              vecprintf(buf,") cons) sip ");
+              vecprintf(buf,") $C ");
               abstract_var(var,s,buf);
          break;
 
@@ -199,8 +205,9 @@ char *abstract_expr(char *expr, int var, char *word, int len)
 
   from = var;
   to = var;
+
   if (var == 0) {
-    from = '1'; to ='1';
+    from = '1'; to ='0';
     for( char *s=expr; *s ; s++) {
       if (*s == '@' && isdigit(s[1]) && s[1]>to)
         to = s[1];
@@ -219,13 +226,21 @@ char *abstract_expr(char *expr, int var, char *word, int len)
      dup_expr = (char *) vectoarray(buf);
   }
 
-  if (word) {
-     buf = vecnew(char);
-     vecprintf(buf,"%.*s = %s",len,word,dup_expr);
-     dup_expr = (char *) vectoarray(buf);
-  }
+  throwif(!dup_expr,EINVAL);
 
-  printf("     > !def %s\n",dup_expr? dup_expr :"");
+  dbgtrc("ABST: pre-word: %s",dup_expr);
+  if (word) {
+     int abslen = strlen(dup_expr);
+     buf = vecnew(char);
+     vecprintf(buf,"%.*s___%s",len,word,dup_expr);
+     dbgtrc("VLN: %d",veccount(buf));
+     dup_expr = (char *) vectoarray(buf);
+     dup_expr[len] = '\0';
+     dup_expr[len+1] = '\0';
+     dup_expr[len+2] = (uint8_t) abslen;
+  }
+  
+  printf("     > !def %s = %s\n",dup_expr, dup_expr+len+3);
 
   ret = dup_expr;
   return ret;

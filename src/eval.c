@@ -9,10 +9,7 @@
 #include "dict.h"
 #include "eval.h"
 
-typedef struct {
-  char *str;
-  uint16_t len;
-} term_t;
+#include "hardwired.h"
 
 vec_t init_stack()
 {
@@ -57,7 +54,7 @@ vec_t free_stack(vec_t stack)
   return vecfree(stack);
 }
 
-static int popterm(vec_t stack)
+int popterm(vec_t stack)
 {
   if (veccount(stack)>0) {
     wipeterm(vectop(stack));
@@ -66,7 +63,7 @@ static int popterm(vec_t stack)
   return 0;
 }
 
-static int pushterm(vec_t stack, char *start, int len)
+int pushterm(vec_t stack, char *start, int len)
 {
   char *term;
 
@@ -443,8 +440,11 @@ static char *reduce(vec_t stack)
 
   if (trm->str[0] == '(') return NULL;
 
+  if (trm->str[0] == '$') return hw_reduce(stack, trm->str);
+
   if (isdigit(trm->str[0]))
     return reduce_num(stack, trm->str);
+
 
   if (isalpha(trm->str[0]) || trm->str[0] == '_')
     return reduce_word(stack, trm->str);
@@ -476,11 +476,11 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
     // evaluate current expressions till the end,
     // unless a new expression is provided!
-    while (*(cur_expr->pos) && !new_expr) {
+    while (!new_expr && *(cur_expr->pos)) {
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp(WORD_DEF "&()",cur_expr->pos);
+      end = skp(WORD_DEF "&D\3&()\4$&.\5",cur_expr->pos);
 
       if (end > cur_expr->pos) { //found a term!
        _dbgtrc("PUSH: '%.*s' (%d)",(int)(end-cur_expr->pos),cur_expr->pos,(int)(end-cur_expr->pos));
@@ -495,18 +495,16 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
         // evaluate the top of the stack. 
         // If the result is an expression, return it!
         new_expr = reduce(stack);
-      _dbgtrc("REDUCED: '%s'",new_expr?new_expr:"\"\"");
+       _dbgtrc("REDUCED: '%s'",new_expr?new_expr:"\"\"");
 
         if (new_expr) {
           vecpush(expressions,&((expr_t){new_expr, new_expr}));
          _dbgtrc("PUSHED: %s (%d)",new_expr,veccount(expressions));
-         break;
+          break;
         }
-        else {
-          if (trace && (veccount(stack) != prev_depth))
-            print_stack(stack);
-        }
-        
+
+        if (trace && (veccount(stack) != prev_depth))
+          print_stack(stack);
       }
       else {
         fprintf(stderr, "ERROR: Invalid term.\n");

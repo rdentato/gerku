@@ -18,4 +18,13 @@ void wipe_stack(vec_t stack);
 int eval(vec_t stack, char *ln, int trace);
 void list_hardwired(FILE *out);
 
+
+typedef struct {
+  char *str;
+  uint16_t len;
+} term_t;
+
+int popterm(vec_t stack);
+int pushterm(vec_t stack, char *start, int len);
+
 #endif

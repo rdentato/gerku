@@ -35,18 +35,17 @@ OPT=-O2
 # Uncomment  gdb read executable
 CFLAGS= $(OPT) -Wall $(LINENOISE) $(DBG)
 
-OBJS=libs.o dict.o eval.o repl.o gerku.o abstract.o
+OBJS=libs.o dict.o eval.o repl.o gerku.o abstract.o hardwired.o
 
-LIBS=$(wildcard libs/*.h)
 
 gerku$(_EXE): $(OBJS)
 	$(CC) -o gerku$(_EXE) $(OBJS)
 
-libs.o: $(LIBS)
+libs.o: $(wildcard libs/*.h)
 	$(CC) $(CFLAGS) -c -o libs.o libs.c
 
-a$(_EXE): a.o libs.o
-	$(CC) -o a$(_EXE) a.o libs.o
+vm$(_EXE): vm.o libs.o
+	$(CC) -o vm$(_EXE) vm.o libs.o
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
