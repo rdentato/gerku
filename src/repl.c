@@ -62,7 +62,7 @@ static int command(char *ln)
   if (chkcmd("abstract",ln,8)) {
     char *a;
     skp("&+s",ln+8,&ln);
-    a = abstract(ln);
+    a = abstract(ln,0,0,NULL,0);
     free(a);
     return 0;
   }

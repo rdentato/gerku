@@ -67,10 +67,16 @@ int pushterm(vec_t stack, char *start, int len)
 {
   char *term;
 
-  term = malloc(len+1);
+  term = malloc(len+1 + (*start == '`'));
   throwif(!term, ENOMEM);
 
   memcpy(term,start,len);
+
+  if (*start == '`') {
+    *term = '(';
+    term[len++] = ')';
+  }
+
   term[len] = '\0';
 
   vecpush(stack,&((term_t){term, len}));
@@ -379,7 +385,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp(WORD_DEF "&D\3&()\4$&.\5",cur_expr->pos);
+      end = skp(WORD_DEF "&D\3&()\4$&.\5`&+!s\6",cur_expr->pos);
 
       if (end > cur_expr->pos) { //found a term!
        _dbgtrc("PUSH: '%.*s' (%d)",(int)(end-cur_expr->pos),cur_expr->pos,(int)(end-cur_expr->pos));

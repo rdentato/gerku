@@ -31,6 +31,48 @@ char **search_word(char *word)
   └──────┴─┴──────┴─┘
 */
 
+int def_word(char *name, char *body)
+{
+  int var =0;
+  char *dict_str;
+
+  char *name_start, *name_end;
+  char *body_start, *body_end;
+  
+  name_start = skp("&+[( ]",name);
+  name_end = skp("&I&?[?!]",name_start);
+
+  if (*name_end == '/') {
+    var = -atoi(name_end+1);
+  }
+  body_start= skp("&+s",body);
+  if (*body_start == '(') body_start++;
+  body_end= skp("&+.",body);
+  while (body_end>body_start && isspace(body_end[-1])) --body_end;
+  
+  if (body_end>body_start && body_end[-1] == ')') body_end--;
+
+  dbgtrc("[%.*s] '%.*s'",(int)(name_end - name_start),name_start,(int)(body_end - body_start),body_start);
+  if (name_end <= name_start || body_end <= body_start) {
+    fprintf(stderr, "Error: Syntax error in definition.\n");
+    fprintf(stderr, "%s\n",body_start);
+    return 0;
+  }
+
+  dict_str = abstract(body_start,body_end - body_start,var,name_start, name_end - name_start);
+
+  char **w = search_word(dict_str);
+
+  if (w) { // Word already exists -> replace it!
+    free(*w);
+    *w = dict_str;
+  }
+  else { // New word -> add to the dictionary
+    vecpush(dict, &dict_str);
+  }
+
+  return 0;
+}
 
 int add_word(char *def)
 {
@@ -63,7 +105,7 @@ int add_word(char *def)
     return 0;
   }
   
-  dict_str = abstract(def,var,name_start, name_end - name_start);
+  dict_str = abstract(def,0,var,name_start, name_end - name_start);
 
   char **w = search_word(dict_str);
 

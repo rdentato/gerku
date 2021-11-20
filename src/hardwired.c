@@ -174,6 +174,74 @@ char *hw_comb_S(vec_t stack, char *word)
   return ret;
 }
 
+//    $T  true = (@2)
+char *hw_comb_T(vec_t stack, char *word)
+{
+  char *ret = NULL;
+
+  term_t *trm1 =vectop(stack,-2);
+  if (!trm1 || trm1->str[0] != '(')
+      return NULL;
+
+  term_t *trm2 =vectop(stack,-1);
+  if (!trm2 || trm2->str[0] != '(')
+      return NULL;
+
+  ret = trm2->str;
+  trm2->str = NULL;
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+  
+  return ret;
+}
+
+//    $F  false/2 = (@1)
+char *hw_comb_F(vec_t stack, char *word)
+{
+  char *ret = NULL;
+
+  term_t *trm1 =vectop(stack,-2);
+  if (!trm1 || trm1->str[0] != '(')
+      return NULL;
+
+  term_t *trm2 =vectop(stack,-1);
+  if (!trm2 || trm2->str[0] != '(')
+      return NULL;
+
+  ret = trm1->str;
+  trm1->str = NULL;
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+  
+  return ret;
+}
+
+char *hw_define(vec_t stack, char *word)
+{
+  char *ret = NULL;
+
+  term_t *trm1 =vectop(stack,-2);
+  if (!trm1 || trm1->str[0] != '(')
+      return NULL;
+
+  term_t *trm2 =vectop(stack,-1);
+  if (!trm2 || trm2->str[0] != '(')
+      return NULL;
+
+  def_word(trm2->str,trm1->str);
+
+  popterm(stack);
+  popterm(stack);
+  popterm(stack);
+  
+  return ret;
+}
+
+
 char *hw_combinator(vec_t stack, char *word)
 {
   switch (word[1]) {
@@ -185,6 +253,11 @@ char *hw_combinator(vec_t stack, char *word)
     case 'C' : return hw_comb_C(stack, word);  // cosp
     case 'D' : return hw_comb_D(stack, word);  // dip
     case 'S' : return hw_comb_S(stack, word);  // sip
+
+    case 'T' : return hw_comb_T(stack, word);  // true
+    case 'F' : return hw_comb_F(stack, word);  // false
+
+    case '=' : return hw_define(stack, word);
   }
   return NULL;
 }
@@ -232,3 +305,4 @@ char *hw_numeral(vec_t stack, char *word)
 
   return ret;            
 }
+

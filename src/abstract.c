@@ -195,18 +195,21 @@ static void abstract_var(int var, char *expr, vec_t buf) // var must be '1' for 
 
 }
 
-char *abstract_expr(char *expr, int var, char *name, int namelen)
+char *abstract(char *expr, int exprlen, int var, char *name, int namelen)
 {
   char *ret = NULL;
   vec_t buf = NULL;
   int from, to;
   
   char *dup_expr;
+  
+  dup_expr = (exprlen <=0)? dupstr(expr) : dupnstr(expr,exprlen);
+  throwif(!dup_expr,EINVAL);
 
   if (var <= 0) {
-    var = -var;
-    from = '1'; to ='0'+var;
-    for( char *s=expr; *s ; s++) {
+
+    from = '1'; to ='0'-var;
+    for( char *s=dup_expr; *s ; s++) {
       if (*s == '@' && isdigit(s[1]) && s[1]>to)
         to = s[1];
     }
@@ -216,7 +219,6 @@ char *abstract_expr(char *expr, int var, char *name, int namelen)
     to = var;
   }
 
-  dup_expr = dupstr(expr);
 
   for (var = from; var <= to; var++) {
      buf = vecnew(char);

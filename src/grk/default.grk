@@ -39,8 +39,8 @@
 
 # Booleans
 
-!def             false/2 = (@1)
-!def             true    = (@2)
+!def             false   = $F
+!def             true    = $T
 !def             ifte    = (@2) (@3) @1
                  
 !def            true!/1  = (true)
@@ -55,49 +55,48 @@
 !def                nor  = ((@1) (@2) or ) not i
 !def                xnor = ((@1) (@2) xor) not i
 
-
 # Pairs
 
-!def                        pair = ((@1) (@2))
-!def                       first = i zap
-!def                      second = i kq
-!def                          kq = (@2)
+!def                pair = ((@1) (@2))
+!def               first = i zap
+!def              second = i kq
+!def                  kq = (@2)
         
 # lists
-!def                         nil = ()
-!def                       lcons = (@1) ((@2)) cons
+!def                 nil = ()
+!def               lcons = (@1) ((@2)) cons
 
 # Naturals (quoted Church-like numerals)
 
-!def                    zero/1 =
-!def                    succ   = (cons) sip @1
+!def              zero/1 =
+!def              succ   = (cons) sip @1
 
-!def                        pred = ((zero) (zero)) () (i pred_step) @1 i first
-!def                   pred_pair = ((@1) ((@1) succ))
-!def                   pred_step = (@1) second pred_pair
+!def                pred = ((zero) (zero)) () (i pred_step) @1 i first
+!def           pred_pair = ((@1) ((@1) succ))
+!def           pred_step = (@1) second pred_pair
 
 ## Operations on Naturals
 
-!def                   tonum = (1) (++) (@1)  for
+!def               tonum = (1) (++) (@1)  for
 
-!def                    add  = (zero) (succ) (@2) (succ) @1 i
-!def                    sub  = (@1) () (i pred) @2 i
-!def                    mult = (zero) (succ) (zero) ((@2) add i) @1 i
+!def                add  = (zero) (succ) (@2) (succ) @1 i
+!def                sub  = (@1) () (i pred) @2 i
+!def                mult = (zero) (succ) (zero) ((@2) add i) @1 i
 
 ## Some Constant
 
-!def                       one   = (zero) succ
-!def                       two   = (one) succ
-!def                       three = (two) succ
-!def                       four  = (three) succ
-!def                       five  = (four) succ
+!def               one   = (zero) succ
+!def               two   = (one) succ
+!def               three = (two) succ
+!def               four  = (three) succ
+!def               five  = (four) succ
 
 ## Predicates on numbers
 
-!def                       zero? = ((true)) (false!) @1 i
-!def                        leq? = (@2) (@1) sub zero?
-!def                        geq? = (@1) (@2) sub zero?
-!def                         eq? = (@1) (@2) leq? (@1) (@2) geq? and
+!def               zero? = ((true)) (false!) @1 i
+!def                leq? = (@2) (@1) sub zero?
+!def                geq? = (@1) (@2) sub zero?
+!def                 eq? = (@1) (@2) leq? (@1) (@2) geq? and
 
 
 # Y Combinators

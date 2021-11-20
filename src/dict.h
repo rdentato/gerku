@@ -13,6 +13,8 @@ void free_dict();
 int list_words(FILE *out,int def);
 int del_word(char *word);
 int add_word(char *def);
+int def_word(char *name, char *body);
+
 char **search_word(char *word);
 int load_defs(char *filename);
 int save_defs(char *filename);
