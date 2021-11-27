@@ -39,49 +39,54 @@
 
 # Booleans
 
-!def             false   = $F
-!def             true    = $T
-!def             ifte    = (@2) (@3) @1
-                 
-!def            true!/1  = (true)
-!def            false!/1 = (false)
-                 
-!def                 not = (true) (false) @1
-!def                 and = (false) (@1) @2
-!def                 or  = (@1) (true) @2
-!def                 xor = ((@1)) ((@1) not) @2 i
-                 
-!def                nand = ((@1) (@2) and) not i
-!def                nor  = ((@1) (@2) or ) not i
-!def                xnor = ((@1) (@2) xor) not i
+!def      true = @2
+!def   false/2 = @1
+
+!def   true!/1 = true
+!def  false!/1 = false
+
+!def       not = (true) (false) @1
+
+!def       and = (false) (@1) @2
+!def        or = (@1) (true) @2
+
+!def       xor = (@1) ((@1) not) @2
+
+!def      nand = ((@1) (@2) and) not
+!def       nor = ((@1) (@2) or ) not
+!def      xnor = ((@1) (@2) xor) not
+
 
 # Pairs
+!def       pair = (@2) (@3) @1
+!def     second = (true) @1
+!def      first = (false) @1
 
-!def                pair = ((@1) (@2))
-!def               first = i zap
-!def              second = i kq
-!def                  kq = (@2)
-        
-# lists
-!def                 nil = ()
-!def               lcons = (@1) ((@2)) cons
 
 # Naturals (quoted Church-like numerals)
+!def               zero/2 = @1
+!def               succ   = {{@1} @2} succ_ @1
+!def               succ_  = {{@1} @2}
 
-!def              zero/1 =
-!def              succ   = (cons) sip @1
-
-!def                pred = ((zero) (zero)) () (i pred_step) @1 i first
-!def           pred_pair = ((@1) ((@1) succ))
-!def           pred_step = (@1) second pred_pair
+#!def               succ   = {{@1} {{@1} @2 } } @1
 
 ## Operations on Naturals
+                   
+!def                add = (@2) (succ) @1
+!def               mult = (zero) ((@2) add) @1
 
-!def               tonum = (1) (++) (@1)  for
+# Move first element to second, set first as succ of second
 
-!def                add  = (zero) (succ) (@2) (succ) @1 i
-!def                sub  = (@1) () (i pred) @2 i
-!def                mult = (zero) (succ) (zero) ((@2) add i) @1 i
+!def            pred_step = {(@1) pred_second} pred_pair 
+!def            pred_first = i pred_first_q
+!def            pred_second = i pred_second_q
+!def            pred_first_q/2 = (@1)
+!def            pred_second_q = (@2)
+!def            pred_pair = {(@1) ((@1) succ)}
+
+!def                pred = ((zero) (zero))  (pred_step) @1 pred_first
+
+
 
 ## Some Constant
 
@@ -90,14 +95,24 @@
 !def               three = (two) succ
 !def               four  = (three) succ
 !def               five  = (four) succ
+!def               six   = (five) succ
+!def               seven = (six) succ
+!def               eight = (seven) succ
+!def               nine  = (eight) succ
+!def               ten   = (nine) succ
 
 ## Predicates on numbers
 
-!def               zero? = ((true)) (false!) @1 i
+!def               zero? = (true) (false!) @1 
+
 !def                leq? = (@2) (@1) sub zero?
 !def                geq? = (@1) (@2) sub zero?
 !def                 eq? = (@1) (@2) leq? (@1) (@2) geq? and
 
+
+# lists
+!def                 nil = ()
+!def               lcons = (@1) ((@2)) cons
 
 # Y Combinators
 #  \f.(\x.f (x x)) (\x.f (x x))
@@ -120,3 +135,6 @@
 # With hardwired numbers and operations
 !def    Fact_step = (@1) (@2) * (@2) --
 !def         Fact = (1) (@1) (Fact_step) (@1) for zap
+
+!def     fct = ((@1) -- fct  (@1) *) (1) (@1) zero? i
+

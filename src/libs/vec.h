@@ -317,17 +317,16 @@ int32_t vecprintf(vec_t v, char *fmt , ...)
 
   char *end, *dst;
   int32_t max_n;
-  
+  int16_t safe_limit = 16384;
   va_list args;
- 
-  int32_t n;
+   int32_t n;
 
   max_n = v->sze - v->fst;
   
   if ((max_n < 32) && !(end = (char *)get_elm(v,v->fst + 32))) 
     return -1;
 
-  while (1) {
+  while (safe_limit--) {
     max_n = v->sze - v->fst;
     if (!(dst = (char *)get_elm(v,v->fst))) return -1;
     va_start(args, fmt);
@@ -338,6 +337,8 @@ int32_t vecprintf(vec_t v, char *fmt , ...)
 
     if (!(end = (char *)get_elm(v,(v->fst + 2*n)))) return -1;
   }
+
+  if (!safe_limit) { errno=ENOSPC; return -1; }
 
   v->fst += n;
   if (v->fst > v->cnt) v->cnt = v->fst;
@@ -385,8 +386,8 @@ int32_t vecpos(vec_t v)
   return v->fst;
 }
 
-#if 0 // TODO
-// Mapping (hashtable)
+#if 0 // TODO ⚒
+// Mapping (hashtable) 
 int vec_isnot_MAP(vec_t v)
 {
   if (!v) { errno = EINVAL; return 0; }

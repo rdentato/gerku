@@ -433,7 +433,7 @@ char *skp_(char *pat, char *src, char **end, int *alt)
 
   p = pat;
   s = start;
-  while (*p >= '\7') {
+  while (*p > '\7') {
     if ((matched = match(p,s,&p_end,&s_end))) {
      _dbgtrc("matched( '%s' '%s'",s,p);
       s = s_end; p = p_end;
