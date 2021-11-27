@@ -88,15 +88,21 @@ static char *reduce_word(vec_t stack, char *word)
 {
   char *ret = NULL; 
   char *s;
- _dbgtrc("REDUCE WORD: '%s'",word);
-
+  char arity;
+  term_t *trm;
   char **w;
 
   w = search_word(word);
 
   if (w) {
     s = skp("&*.",*w);
-    s++;
+    s++; arity = *s++ - '0';
+    if (veccount(stack) < arity+1) return NULL;
+    for (int i=1; i <= arity; i++) {
+       trm =vectop(stack,-i);
+       if (!trm || trm->str[0] != '(') return NULL;
+    }
+
    _dbgtrc("WORD: '%s' '%s'",*w,s);
     if (*s) ret = dupstr(s);
     popterm(stack);
@@ -163,7 +169,7 @@ static char *reduce_incr(vec_t stack, char *word)
   ret = malloc(20);
   throwif(!ret,ENOMEM);
 
-  sprintf(ret,"(%d)",n+1);
+  sprintf(ret,"%d",n+1);
   popterm(stack);
   popterm(stack);
 
@@ -184,7 +190,7 @@ static char *reduce_decr(vec_t stack, char *word)
   if (n>0) {
     ret = malloc(20);
     throwif(!ret,ENOMEM);
-    sprintf(ret,"(%d)",n-1);
+    sprintf(ret,"%d",n-1);
     popterm(stack);
   }
   popterm(stack);
@@ -204,7 +210,7 @@ static char *reduce_eq_zero(vec_t stack, char *word)
   if (!is_num(trm->str,trm->len,&n))
       return NULL;
 
-  ret = dupstr(n==0?"(true)":"(false)");
+  ret = dupstr(n==0?"$T":"$F");
   throwif(!ret,ENOMEM);
 
   popterm(stack);
@@ -232,7 +238,7 @@ static char *reduce_add(vec_t stack, char *word)
   ret = malloc(20);
   throwif(!ret,ENOMEM);
 
-  sprintf(ret,"(%d)",n2);
+  sprintf(ret,"%d",n2);
 
   popterm(stack);
   popterm(stack);
@@ -261,7 +267,7 @@ static char *reduce_sub(vec_t stack, char *word)
   ret = malloc(20);
   throwif(!ret,ENOMEM);
 
-  sprintf(ret,"(%d)",n2);
+  sprintf(ret,"%d",n2);
 
   popterm(stack);
   popterm(stack);
@@ -289,7 +295,7 @@ static char *reduce_mult(vec_t stack, char *word)
   ret = malloc(20);
   throwif(!ret,ENOMEM);
 
-  sprintf(ret,"(%d)",n2);
+  sprintf(ret,"%d",n2);
 
   popterm(stack);
   popterm(stack);
@@ -337,6 +343,47 @@ static char *reduce_hardwired(vec_t stack, char *word)
   return NULL;
 }
 
+char *reduce_transparent(vec_t stack, char *word)
+{
+  char *ret = NULL;
+  term_t *trm;
+  int cnt = -1;
+  int nest = 1;
+  int size = 0;
+  int pos;
+
+ _dbgtrc("Closing");
+  while (1) {
+    trm = vectop(stack, cnt);
+   _dbgtrc("@ %d (%d) '%s'",cnt,nest,trm->str);
+    if (!trm) return NULL;
+    if (trm->str[0] == '}') nest++;
+    if (trm->str[0] == '{') nest--;
+    if (nest == 0) break;
+    size += trm->len;
+    cnt --;
+  }
+ _dbgtrc("Close at:[%d] size: %d '%s'",cnt,size, trm->str);
+  ret = malloc(size-3*cnt+1);
+  throwif(!ret, ENOMEM);
+  
+  pos = 0;
+  ret[pos++] = '(';
+  for (int i=cnt+1; i<0; i++) {
+    trm = vectop(stack, i);
+    pos += sprintf(ret+pos,"%s ",trm->str);
+  }
+  while (pos>0 && isspace(ret[pos-1])) pos--;
+  ret[pos++] = ')';
+  ret[pos] = '\0';
+
+  for (int i=0; i>=cnt; i--) {
+    popterm(stack);
+  }
+
+  return ret;
+}
+
 static char *reduce(vec_t stack)
 {
   term_t *trm;
@@ -345,6 +392,10 @@ static char *reduce(vec_t stack)
 
   trm = vectop(stack);
 
+  if (trm->str[0] == '{') return NULL;
+
+  if (trm->str[0] == '}') return reduce_transparent(stack, trm->str);
+  
   if (trm->str[0] == '(') return NULL;
 
   if (trm->str[0] == '$') return hw_combinator(stack, trm->str);
@@ -385,7 +436,7 @@ static int eval_expressions(vec_t stack, vec_t expressions, int trace)
 
       // terms are sequence of letters/numbers or a quote
       // (a sequence of terms in parenthesis )
-      end = skp(WORD_DEF "&D\3&()\4$&.\5`&+!s\6",cur_expr->pos);
+      end = skp(WORD_DEF "&D\3&()\4$&.\5`&+!s\6{\7}\7",cur_expr->pos);
 
       if (end > cur_expr->pos) { //found a term!
        _dbgtrc("PUSH: '%.*s' (%d)",(int)(end-cur_expr->pos),cur_expr->pos,(int)(end-cur_expr->pos));

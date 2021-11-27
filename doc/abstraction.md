@@ -36,6 +36,8 @@
 ```
 
   The *evaluation* of an expression proceeds from left to right by finding the first combinator that can be successfully reduced (i.e. the one that has enough quotes at its left) and replacing it and its arguments with the result of its application to the arguments.
+  
+  We  assume that, as in classical Combinatory Logic, the Church-Rosser theorem holds. While not a real proof, at the end of this paper we'll provide a reasoning that reassure us on the validity of the Church-Rosser theorem.
 
 ## Combinators
   Let's use an intuitive definition of what a combinator is:
@@ -49,7 +51,7 @@
     (𝑦) (𝑥) swap  = (𝑥) (𝑦)
 ```
 
-  You can interpret the defintion of `swap` above by sayng that in any given expression you can replace any occurence of:
+  You can interpret the definition of `swap` above by saying that in any given expression you can replace any occurence of:
 ```
     (𝑦) (𝑥) swap
 ```
@@ -58,13 +60,9 @@ with:
     (𝑥) (𝑦)
 ```
 
-  We will assume that, as in classical Combinatory Logic, the Church-Rosser theorem holds. It ensures that we'll get the same result regardless which strategy of reduction we'll choose (i.e. regardless how we select the combinator to replace in the expression). It has not been proved but is all reasonable to believe it does.
-
   For the sake of reasoning (and as a possible strategy of implementation) we can think of a combinator as a program that operates on a stack:
 
-  > A combinator is a *program* that pulls a certain number of
-  > quoted elements from a stack and push back in the stack
-  > a number of copies of them (even zero) possibily in a different order
+  > A combinator is a *program* that pulls a certain number of quoted expressions from a stack and push back in the stack a number of expressions containing any number of them (even zero), possibily in a different order
 
   To simplify the abstraction algorithm we'll use the following combinators:
  
@@ -81,7 +79,7 @@ with:
 
 which are a superset of the bases defined in [1] and, hence, ensure that every possible expression can be represented using those combinators.
 
-  We'll extend the concept of combinator *defintions* by allowing a combinator to add other elements that were not in the original argumens.
+  We'll extend the concept of combinator *defintions* by allowing a combinator to add other elements that were not in the original arguments.
 
   For example:
 ```
@@ -99,7 +97,7 @@ which are a superset of the bases defined in [1] and, hence, ensure that every p
            𝓖 = {𝓕}[(𝑥)]  ->  (𝑥) 𝓖 = 𝓕
 ```
 
-  In a sense, abstraction is similar to compilation. Given an expression `𝓕` containing variables (the *source code*) we can see `{𝓕}[(𝑥)]` as a program that when applied to a quoted expression `(𝓡)` will result in the original expression where any occurence of the variable `𝑥` is replaced by `𝓡`.
+  In a sense, abstraction is similar to compilation. Given an expression `𝓕` containing a variable `𝑥` (the *source code*) we can see `{𝓕}[(𝑥)]` as a program that when applied to a quoted expression `(𝓡)` will result in the original expression where any occurence of the variable `𝑥` is replaced by `𝓡`.
 
   When abstracting multiple variable we'll have:
 
@@ -132,7 +130,7 @@ which are a superset of the bases defined in [1] and, hence, ensure that every p
 
   3. The expression can be split in two parts with first terms not containing the variable `𝑥` followed by other terms containing `𝑥`;
      
-  4. The first term is a quote containing `𝑥` (otherwise it would have been accounted for in case 1) followed by an expression containing `𝑥` (otherwise it would have been accounted for in case 0);
+  4. The first term is a quote containing `𝑥` (otherwise it would have been accounted for in case 3) followed by an expression containing `𝑥` (otherwise it would have been accounted for in case 0);
 
   5. The fist term is the variable `𝑥` (unquoted).
 
@@ -268,7 +266,7 @@ simplifying some special cases:
 
   They can be easily checked as we did in the previous section.
 
-  Note that those special cases are included in the general case when one of the expressions are empty.
+  Note that those special cases are included in the general case when one of the expressions is empty or has a special form.
 
   Let's give just one example that shows that rule `4b` is *implied* in rule `4` when the expression 𝓜 is empty.
 
@@ -307,10 +305,45 @@ simplifying some special cases:
 
   From the abstraction algorithm there is no difference as the two type of quotes are equivalent.
 
+## The Church-Rosser theorem
+  The Church-Rosser theorem, plays a key role in the evaluation of an expression and the fact that it holds for concatenative combinators is an assumption for the abstraction algorithm to work. It is also essential for the discussion on transparte/opaque quotes in the preceding section.
+
+  It can be formulated in many different ways, this is one of them:
+
+  > Let 𝓐 ⊳ 𝓑 be the reduction of the expression 𝓐 to the expression 𝓑; then
+  >      𝓤 ⊳ 𝓧 ∧ 𝓤 ⊳ 𝓨 ⇒ ∃𝓩:  𝓧 ⊳ 𝓩 ∧ 𝓨 ⊳ 𝓩
+
+  In plain words, if an expression 𝓤 can be reduced to two different expressions 𝓧 and 𝓨, then there is an expression 𝓩 to whom both 𝓧 and 𝓨 can be reduced.
+
+  Which means that the strategy of reductions is irrelevant as any of them will lead to the same expression 𝓩.
+
+  While the general proof of this theorem is quite complex, in our specific case (concatenative combinators that only act on quotes) it's pretty straightforwad to convince ourselves that the theorem holds.
+
+  Let's consider the following expression:
+  ```
+          (𝓊) A (𝓋) B
+  ```
+  where `A` and `B` are combinators and `𝓊` and `𝓋` are generic expressions.
+  
+  The only interesting case is when both of them can be reduced (i.e. they both are a *redex*). Let's consider one step of reduction.
+
+  If we reduce `(𝓊) A`, there will be no consequence on `(𝓋) B`, since it is already a redex.
+
+  If we reduce `(𝓋) B` the result can be:
+   - a redex itself, which brings us in the same situation we were before the reduction,
+   - a non reducible expression like `(𝓈) (𝓉) C`.
+   
+  The resulting expression `(𝓊) A (𝓈) (𝓉) C` now contains only one redex (`(𝓊) A`) becase the combinator `C` only operates on quotes and `A` is unquoted.
+ 
+  This reasoning can be repeated for a more general case but it's easy to see that the redex in an expressions to do not interfere with each other and, hence, the order in which they are reduced is irrelevant for the end result.
+
+
 ## Conclusion
   We have defined an abstraction algorithm for Concatenative combinators that is simple enough to be implemented and even being applied by hand 
 
   This frees us from the need of handling variables when using Concatenative Combinators.
+
+  We have also argumented around the validity of the Church-Rosser theorem that is an assumption for the abstraction algorithm to work.
 
   Here are the list of all the abstraction rules (including the special cases):
   

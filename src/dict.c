@@ -26,9 +26,10 @@ char **search_word(char *word)
   New words will be stored in the dictionary as a single
   string with the following structure:
 
-  ┌──────┬─┬──────┬─┐
-  │ word │0│ body │0│
-  └──────┴─┴──────┴─┘
+  ┌──────┬──┬───┬────────────┬──┐
+  │ word │\0│ n │    body    │\0│
+  └──────┴──┴─▲─┴────────────┴──┘
+              ╰ arity
 */
 
 int def_word(char *name, char *body)
@@ -158,15 +159,16 @@ int list_words(FILE *out,int def)
 {
   char **v = vec(dict);
   char *s;
+  char arity;
 
   for (int k=0; k<veccount(dict); k++) {
     s=v[k];
     while (*s) s++;
-    s++;
+    s++; arity=*s++;
 
     if (def) fprintf(out,"!def ");
   
-    fprintf(out, "%s = %s\n",v[k],s);
+    fprintf(out, "%s/%c = %s\n",v[k],arity,s);
   }
   return 0;
 }

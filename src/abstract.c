@@ -81,7 +81,7 @@ char *occurs(char *expr, int var)
   s = skp("&+s",s);
   while (*s && (ret == NULL)) {
 
-    end = skp("&()\1&+![ (]\2",s);
+    end = skp("&()\1$&.\1{\1}\2&+![ (]\3",s);
 
     if (errno) break; 
     
@@ -239,10 +239,11 @@ char *abstract(char *expr, int exprlen, int var, char *name, int namelen)
  _dbgtrc("ABST: pre-name: '%s'",dup_expr);
   if (name) {
      buf = vecnew(char);
-     vecprintf(buf,"%.*s_%s",namelen,name,dup_expr);
+     vecprintf(buf,"%.*s__%s",namelen,name,dup_expr);
     _dbgtrc("VLN: %d",veccount(buf));
      dup_expr = (char *) vectoarray(buf);
      dup_expr[namelen] = '\0';
+     dup_expr[namelen+1] = to;
   }
   
   // printf("     > !def %s = %s\n",dup_expr, dup_expr+namelen+1);
