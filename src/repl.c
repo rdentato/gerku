@@ -186,7 +186,9 @@ int repl(vec_t stack)
     ln = line;
     skp("&+s",ln,&ln);
 
-    ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
+   _dbgclk("elapsed") {
+      ret = (*ln == '!')? command(ln+1) : eval(stack,ln,trace);
+    }
 
     clear_line(line);
     if (ret == WIPE) wipe_stack(stack);
